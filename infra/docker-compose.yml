@@ -1,0 +1,63 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: biblia-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: biblia
+      POSTGRES_PASSWORD: biblia_dev_password
+      POSTGRES_DB: biblia_ao
+    ports:
+      - "5432:5432"
+    volumes:
+      - biblia_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U biblia -d biblia_ao"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.8
+    container_name: biblia-meilisearch
+    restart: unless-stopped
+    environment:
+      MEILI_MASTER_KEY: "dev_master_key_change_me"
+      MEILI_ENV: "development"
+    ports:
+      - "7700:7700"
+    volumes:
+      - biblia_meili_data:/meili_data
+
+  api:
+    build:
+      context: ../apps/api
+      dockerfile: Dockerfile
+    container_name: biblia-api
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "4000:4000"
+
+  web:
+    build:
+      context: ../apps/web
+      dockerfile: Dockerfile
+    container_name: biblia-web
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    depends_on:
+      - api
+    ports:
+      - "3000:3000"
+
+volumes:
+  biblia_pg_data:
+  biblia_meili_data:

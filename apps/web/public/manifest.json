@@ -1,0 +1,13 @@
+{
+  "name": "Biblia.ao",
+  "short_name": "Biblia.ao",
+  "description": "Leitura, estudo e divulgação da Bíblia em Angola e no mundo lusófono.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fdfbf6",
+  "theme_color": "#243a70",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

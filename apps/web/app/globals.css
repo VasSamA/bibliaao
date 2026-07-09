@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+.dark {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-parchment-50 text-sacred-900 dark:bg-sacred-900 dark:text-parchment-100 transition-colors;
+}
+
+.verse-text {
+  font-family: Georgia, Cambria, 'Times New Roman', serif;
+  line-height: 1.9;
+}
+
+::selection {
+  @apply bg-gold-400/40;
+}

@@ -1,0 +1,565 @@
+// ==========================================================
+// Biblia.ao — Schema de Base de Dados (PostgreSQL)
+// ==========================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Enums ----------
+
+enum UserRole {
+  VISITANTE
+  UTILIZADOR_REGISTADO
+  ESTUDANTE
+  LIDER
+  PASTOR
+  EDITOR_CONTEUDO
+  MODERADOR
+  ADMINISTRADOR
+  SUPER_ADMINISTRADOR
+}
+
+enum ContentStatus {
+  RASCUNHO
+  PENDENTE_APROVACAO
+  PUBLICADO
+  ARQUIVADO
+  REJEITADO
+}
+
+enum ResourceType {
+  PDF
+  SLIDE
+  IMAGEM
+  AUDIO
+  VIDEO
+  CERTIFICADO
+  OUTRO
+}
+
+enum CommentStatus {
+  PENDENTE
+  APROVADO
+  REJEITADO
+  DENUNCIADO
+}
+
+enum NotificationChannel {
+  EMAIL
+  PUSH
+  IN_APP
+}
+
+enum NotificationStatus {
+  PENDENTE
+  ENVIADA
+  FALHOU
+  LIDA
+}
+
+enum ChurchStatus {
+  PENDENTE
+  APROVADA
+  REJEITADA
+}
+
+// ---------- Utilizadores, Perfis e Permissões ----------
+
+model User {
+  id                String    @id @default(uuid())
+  name              String
+  email             String    @unique
+  phone             String?
+  passwordHash      String
+  role              UserRole  @default(UTILIZADOR_REGISTADO)
+  avatarUrl         String?
+  bio               String?
+  church            String?
+  city              String?
+  country           String    @default("Angola")
+  preferredFontSize Int       @default(16)
+  preferredTheme    String    @default("light") // light | dark
+  emailVerifiedAt   DateTime?
+  isActive          Boolean   @default(true)
+  lastLoginAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  permissions        UserPermission[]
+  notes               UserNote[]
+  favorites            UserFavorite[]
+  readingPlanProgress ReadingPlanProgress[]
+  comments             Comment[]
+  aiQuestions          AiQuestion[]
+  notifications        Notification[]
+  auditLogs             AuditLog[]
+  analyticsEvents      AnalyticsEvent[]
+  authoredStudies      Study[]        @relation("StudyAuthor")
+  authoredArticles     Article[]      @relation("ArticleAuthor")
+  authoredDevotionals Devotional[]   @relation("DevotionalAuthor")
+  submittedChurch     Church[]       @relation("ChurchSubmittedBy")
+  readingHistory       ReadingHistory[]
+  refreshTokens         RefreshToken[]
+
+  @@index([role])
+  @@map("users")
+}
+
+model Permission {
+  id          String @id @default(uuid())
+  key         String @unique // ex: "studies.create", "users.manage"
+  description String
+
+  users UserPermission[]
+
+  @@map("permissions")
+}
+
+model UserPermission {
+  userId       String
+  permissionId String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([userId, permissionId])
+  @@map("user_permissions")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+// ---------- Bíblia ----------
+
+model BibleVersion {
+  id           String   @id @default(uuid())
+  code         String   @unique // ex: "ARA", "NVI"
+  name         String
+  language     String   @default("pt")
+  description  String?
+  source       String? // ex: "api.bible"
+  externalId   String? // id da versão na API.Bible
+  isDefault    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  books BibleBook[]
+
+  @@map("bible_versions")
+}
+
+model BibleBook {
+  id             String   @id @default(uuid())
+  versionId      String
+  version        BibleVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  externalId     String?
+  slug           String   // ex: "genesis", "joao"
+  name           String   // ex: "Génesis", "João"
+  abbreviation   String   // ex: "Gn", "Jo"
+  testament      String   // "AT" | "NT"
+  order          Int
+  chaptersCount  Int      @default(0)
+
+  chapters BibleChapter[]
+
+  @@unique([versionId, slug])
+  @@index([versionId, testament, order])
+  @@map("bible_books")
+}
+
+model BibleChapter {
+  id         String   @id @default(uuid())
+  bookId     String
+  book       BibleBook @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  number     Int
+  versesCount Int      @default(0)
+  audioUrl   String?
+
+  verses BibleVerse[]
+
+  @@unique([bookId, number])
+  @@map("bible_chapters")
+}
+
+model BibleVerse {
+  id        String   @id @default(uuid())
+  chapterId String
+  chapter   BibleChapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  number    Int
+  text      String
+  reference String  // ex: "João 3:16"
+  searchVector Unsupported("tsvector")?
+
+  notes      UserNote[]
+  favorites  UserFavorite[]
+
+  @@unique([chapterId, number])
+  @@map("bible_verses")
+}
+
+// ---------- Estudos, Devocionais, Artigos ----------
+
+model Study {
+  id            String        @id @default(uuid())
+  title         String
+  slug          String        @unique
+  summary       String
+  content       String
+  coverImageUrl String?
+  category      String?
+  tags          String[]
+  status        ContentStatus @default(RASCUNHO)
+  authorId      String
+  author        User          @relation("StudyAuthor", fields: [authorId], references: [id])
+  relatedBookSlug String?
+  publishedAt   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  comments Comment[] @relation("StudyComments")
+
+  @@index([status])
+  @@map("studies")
+}
+
+model Devotional {
+  id            String        @id @default(uuid())
+  title         String
+  slug          String        @unique
+  date          DateTime      // dia a que se refere o devocional
+  verseReference String
+  verseText     String
+  reflection    String
+  prayer        String?
+  application   String?
+  coverImageUrl String?
+  status        ContentStatus @default(RASCUNHO)
+  authorId      String
+  author        User          @relation("DevotionalAuthor", fields: [authorId], references: [id])
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  comments Comment[] @relation("DevotionalComments")
+
+  @@unique([date])
+  @@index([status])
+  @@map("devotionals")
+}
+
+model Article {
+  id            String        @id @default(uuid())
+  title         String
+  slug          String        @unique
+  excerpt       String
+  content       String
+  coverImageUrl String?
+  category      String?
+  tags          String[]
+  status        ContentStatus @default(RASCUNHO)
+  authorId      String
+  author        User          @relation("ArticleAuthor", fields: [authorId], references: [id])
+  publishedAt   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  comments Comment[] @relation("ArticleComments")
+
+  @@index([status])
+  @@map("articles")
+}
+
+// ---------- Recursos (Biblioteca) ----------
+
+model Resource {
+  id           String        @id @default(uuid())
+  title        String
+  description  String?
+  type         ResourceType
+  category     String?
+  audience     String?       // ex: "lideres", "infantil", "geral"
+  fileUrl      String
+  fileSizeKb   Int?
+  mimeType     String?
+  thumbnailUrl String?
+  status       ContentStatus @default(PENDENTE_APROVACAO)
+  downloadCount Int          @default(0)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([type, status])
+  @@map("resources")
+}
+
+// ---------- Academia Bíblica (cursos) ----------
+
+model Course {
+  id          String   @id @default(uuid())
+  title       String
+  slug        String   @unique
+  description String
+  level       String   @default("iniciante") // iniciante | intermedio | avancado
+  coverImageUrl String?
+  status      ContentStatus @default(RASCUNHO)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  lessons CourseLesson[]
+
+  @@map("courses")
+}
+
+model CourseLesson {
+  id        String @id @default(uuid())
+  courseId  String
+  course    Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title     String
+  order     Int
+  videoUrl  String?
+  content   String?
+  durationMinutes Int?
+
+  @@unique([courseId, order])
+  @@map("course_lessons")
+}
+
+// ---------- Igrejas / Mapa ----------
+
+model Church {
+  id           String       @id @default(uuid())
+  name         String
+  denomination String?
+  pastorName   String?
+  address      String
+  city         String
+  province     String
+  country      String       @default("Angola")
+  latitude     Float?
+  longitude    Float?
+  phone        String?
+  email        String?
+  website      String?
+  description  String?
+  status       ChurchStatus @default(PENDENTE)
+  submittedById String?
+  submittedBy   User?       @relation("ChurchSubmittedBy", fields: [submittedById], references: [id])
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  events ChurchEvent[]
+
+  @@index([status])
+  @@index([province, city])
+  @@map("churches")
+}
+
+model ChurchEvent {
+  id        String   @id @default(uuid())
+  churchId  String
+  church    Church   @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  title     String
+  description String?
+  startsAt  DateTime
+  endsAt    DateTime?
+  location  String?
+
+  @@map("church_events")
+}
+
+// ---------- Planos de Leitura ----------
+
+model ReadingPlan {
+  id          String   @id @default(uuid())
+  title       String
+  slug        String   @unique
+  description String
+  durationDays Int
+  coverImageUrl String?
+  status      ContentStatus @default(RASCUNHO)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  days     ReadingPlanDay[]
+  progress ReadingPlanProgress[]
+
+  @@map("reading_plans")
+}
+
+model ReadingPlanDay {
+  id            String      @id @default(uuid())
+  planId        String
+  plan          ReadingPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  dayNumber     Int
+  title         String?
+  references    String[]    // ex: ["João 1:1-18", "Salmos 23"]
+  note          String?
+
+  @@unique([planId, dayNumber])
+  @@map("reading_plan_days")
+}
+
+model ReadingPlanProgress {
+  id            String      @id @default(uuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId        String
+  plan          ReadingPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  currentDay    Int         @default(1)
+  startedAt     DateTime    @default(now())
+  completedAt   DateTime?
+  lastActivityAt DateTime   @default(now())
+
+  @@unique([userId, planId])
+  @@map("reading_plan_progress")
+}
+
+// ---------- Histórico, Notas e Favoritos ----------
+
+model ReadingHistory {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reference String   // ex: "João 3:16-18"
+  readAt    DateTime @default(now())
+
+  @@index([userId, readAt])
+  @@map("reading_history")
+}
+
+model UserNote {
+  id        String     @id @default(uuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verseId   String?
+  verse     BibleVerse? @relation(fields: [verseId], references: [id], onDelete: SetNull)
+  reference String     // referência textual, resiliente mesmo sem verseId
+  content   String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([userId])
+  @@map("user_notes")
+}
+
+model UserFavorite {
+  id        String     @id @default(uuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verseId   String?
+  verse     BibleVerse? @relation(fields: [verseId], references: [id], onDelete: SetNull)
+  reference String
+  colorTag  String?    // marcação por cor, ex: "amarelo", "azul"
+  createdAt DateTime   @default(now())
+
+  @@unique([userId, reference])
+  @@index([userId])
+  @@map("user_favorites")
+}
+
+// ---------- Comunidade: Comentários ----------
+
+model Comment {
+  id            String        @id @default(uuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content       String
+  status        CommentStatus @default(PENDENTE)
+  parentId      String?
+  parent        Comment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies       Comment[]     @relation("CommentReplies")
+
+  studyId       String?
+  study         Study?        @relation("StudyComments", fields: [studyId], references: [id], onDelete: Cascade)
+  articleId     String?
+  article       Article?      @relation("ArticleComments", fields: [articleId], references: [id], onDelete: Cascade)
+  devotionalId  String?
+  devotional    Devotional?   @relation("DevotionalComments", fields: [devotionalId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([status])
+  @@map("comments")
+}
+
+// ---------- IA Bíblica (Pergunte à Bíblia — RAG) ----------
+
+model AiQuestion {
+  id            String   @id @default(uuid())
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  question      String
+  answer        String?
+  referencesUsed String[] // ex: ["João 3:16", "Romanos 8:28"]
+  sourceChunks  Json?     // trechos de estudos/devocionais usados no RAG
+  model         String?
+  latencyMs     Int?
+  wasHelpful    Boolean?
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+  @@map("ai_questions")
+}
+
+// ---------- Notificações ----------
+
+model Notification {
+  id        String              @id @default(uuid())
+  userId    String
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel   NotificationChannel
+  title     String
+  body      String
+  status    NotificationStatus  @default(PENDENTE)
+  readAt    DateTime?
+  sentAt    DateTime?
+  createdAt DateTime            @default(now())
+
+  @@index([userId, status])
+  @@map("notifications")
+}
+
+// ---------- Auditoria e Analytics ----------
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String   // ex: "study.publish", "user.role_change"
+  entityType String?
+  entityId   String?
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
+
+model AnalyticsEvent {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  eventName String   // ex: "bible.read", "study.view", "ai.question"
+  properties Json?
+  sessionId String?
+  createdAt DateTime @default(now())
+
+  @@index([eventName, createdAt])
+  @@map("analytics_events")
+}
