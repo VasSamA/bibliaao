@@ -1,43 +1,64 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
+type MidvashBook = {
+  id: number;
+  name: Record<string, string>;
+  slug: Record<string, string>;
+  abbrev: Record<string, string>;
+  chapters: number;
+  testament: 'old' | 'new';
+  category: string;
+};
+
+type MidvashVersion = {
+  slug: string;
+  name: string;
+  shortName: string;
+  language: string;
+  hasOldTestament: boolean;
+  hasNewTestament: boolean;
+  totalBooks: number;
+  totalChapters: number;
+};
+
+type MidvashChapter = {
+  version: string;
+  book: string;
+  bookName: string;
+  chapter: number;
+  verses: string[];
+};
+
 /**
- * Serviço de importação do texto bíblico a partir da API.Bible
- * (https://scripture.api.bible/). Requer API_BIBLE_KEY no ambiente.
+ * Serviço de importação do texto bíblico a partir da API pública da Midvash
+ * (https://api.midvash.com/) — gratuita, sem chave de API e sem registo,
+ * com 86 versões em 32 idiomas (incluindo várias em português: ARA, ACF,
+ * NVI, NAA, entre outras).
  *
  * Fluxo:
- *  1. Para cada versão listada em API_BIBLE_VERSION_IDS, busca metadados
- *     e cria/atualiza um registo em `bible_versions`.
- *  2. Busca a lista de livros (`/bibles/{bibleId}/books`) e grava em
- *     `bible_books`, mapeando testamento e ordem.
- *  3. Para cada livro, busca capítulos (`/bibles/{bibleId}/books/{bookId}/chapters`)
- *     e grava em `bible_chapters`.
- *  4. Para cada capítulo, busca o conteúdo em texto e versículos
- *     (`/bibles/{bibleId}/chapters/{chapterId}?content-type=text`) e faz
- *     parsing para popular `bible_verses`.
+ *  1. Busca os metadados da versão (`/v1/versions/{slug}`) e cria/atualiza
+ *     o registo em `bible_versions`.
+ *  2. Busca a lista canónica de livros (`/v1/books`) — inclui testamento,
+ *     ordem (id) e slug em várias línguas (usamos o slug pt-br, que também
+ *     é aceite como parâmetro de rota pela própria API).
+ *  3. Para cada livro compatível com a versão (Antigo/Novo Testamento),
+ *     grava `bible_books` e, para cada capítulo (`/v1/{versao}/{livro}/{n}`),
+ *     grava `bible_chapters` e os respetivos `bible_verses`.
  *
- * A API.Bible tem limites de taxa — este serviço aplica um atraso entre
- * pedidos e é seguro para re-execução (idempotente via upsert).
+ * Idempotente (upsert) — seguro para re-executar.
  */
 @Injectable()
 export class BibleImportService {
   private readonly logger = new Logger(BibleImportService.name);
-  private readonly baseUrl = process.env.API_BIBLE_BASE_URL ?? 'https://api.scripture.api.bible/v1';
-  private readonly apiKey = process.env.API_BIBLE_KEY ?? '';
+  private readonly baseUrl = process.env.MIDVASH_API_URL ?? 'https://api.midvash.com/v1';
 
   constructor(private readonly prisma: PrismaClient) {}
 
   private async request<T>(path: string): Promise<T> {
-    if (!this.apiKey) {
-      throw new Error(
-        'API_BIBLE_KEY não configurada. Obtenha uma chave em https://scripture.api.bible/ e defina no .env',
-      );
-    }
-    const res = await fetch(`${this.baseUrl}${path}`, {
-      headers: { 'api-key': this.apiKey },
-    });
+    const res = await fetch(`${this.baseUrl}${path}`);
     if (!res.ok) {
-      throw new Error(`API.Bible erro ${res.status} em ${path}: ${await res.text()}`);
+      throw new Error(`Midvash API erro ${res.status} em ${path}: ${await res.text()}`);
     }
     const json = (await res.json()) as { data: T };
     return json.data;
@@ -47,127 +68,84 @@ export class BibleImportService {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  async importVersion(bibleId: string) {
-    this.logger.log(`A importar versão ${bibleId}...`);
+  async importVersion(versionSlug: string) {
+    this.logger.log(`A importar versão "${versionSlug}" da Midvash API...`);
 
-    const meta = await this.request<{
-      id: string;
-      abbreviation: string;
-      name: string;
-      language: { id: string; name: string };
-      description?: string;
-    }>(`/bibles/${bibleId}`);
+    const meta = await this.request<MidvashVersion>(`/versions/${versionSlug}`);
 
     const version = await this.prisma.bibleVersion.upsert({
-      where: { code: meta.abbreviation || meta.id },
-      update: { name: meta.name, externalId: meta.id, source: 'api.bible' },
+      where: { code: meta.shortName || meta.slug.toUpperCase() },
+      update: { name: meta.name, source: 'midvash' },
       create: {
-        code: meta.abbreviation || meta.id,
+        code: meta.shortName || meta.slug.toUpperCase(),
         name: meta.name,
-        language: meta.language?.id ?? 'pt',
-        description: meta.description,
-        externalId: meta.id,
-        source: 'api.bible',
+        language: meta.language,
+        externalId: meta.slug,
+        source: 'midvash',
       },
     });
 
-    const books = await this.request<
-      Array<{ id: string; bibleId: string; abbreviation: string; name: string; nameLong?: string }>
-    >(`/bibles/${bibleId}/books`);
+    const allBooks = await this.request<MidvashBook[]>('/books');
+    const relevantBooks = allBooks
+      .filter((b) => (b.testament === 'old' ? meta.hasOldTestament : meta.hasNewTestament))
+      .sort((a, b) => a.id - b.id);
 
-    let order = 1;
-    for (const b of books) {
-      const testament = order <= 39 ? 'AT' : 'NT'; // aproximação; ajustar por cânone se necessário
-      const slug = this.slugify(b.name);
+    for (const book of relevantBooks) {
+      const slug = book.slug['pt-br'] ?? book.slug.en;
+      const name = book.name['pt-br'] ?? book.name.en;
+      const abbreviation = book.abbrev['pt-br'] ?? book.abbrev.en;
+      const testament = book.testament === 'old' ? 'AT' : 'NT';
 
-      const book = await this.prisma.bibleBook.upsert({
+      const bookRecord = await this.prisma.bibleBook.upsert({
         where: { versionId_slug: { versionId: version.id, slug } },
-        update: { name: b.name, abbreviation: b.abbreviation, externalId: b.id },
+        update: { name, abbreviation, chaptersCount: book.chapters },
         create: {
           versionId: version.id,
-          externalId: b.id,
+          externalId: String(book.id),
           slug,
-          name: b.name,
-          abbreviation: b.abbreviation,
+          name,
+          abbreviation,
           testament,
-          order: order++,
+          order: book.id,
+          chaptersCount: book.chapters,
         },
       });
 
-      await this.importChapters(bibleId, b.id, book.id);
-      await this.sleep(250); // respeitar rate limit
+      for (let chapterNumber = 1; chapterNumber <= book.chapters; chapterNumber++) {
+        await this.importChapter(versionSlug, slug, chapterNumber, bookRecord.id);
+        await this.sleep(30); // ritmo gentil — a Midvash não exige, mas evita rajadas desnecessárias
+      }
+
+      this.logger.log(`  ${name}: ${book.chapters} capítulo(s) importado(s).`);
     }
 
-    this.logger.log(`Versão ${meta.name} importada com sucesso.`);
+    this.logger.log(`Versão "${meta.name}" importada com sucesso (${relevantBooks.length} livros).`);
   }
 
-  private async importChapters(bibleId: string, apiBookId: string, bookId: string) {
-    const chapters = await this.request<Array<{ id: string; number: string }>>(
-      `/bibles/${bibleId}/books/${apiBookId}/chapters`,
-    );
+  private async importChapter(versionSlug: string, bookSlug: string, chapterNumber: number, bookId: string) {
+    const chapterData = await this.request<MidvashChapter>(`/${versionSlug}/${bookSlug}/${chapterNumber}`);
 
-    let chaptersCount = 0;
-    for (const c of chapters) {
-      if (c.number === 'intro') continue; // ignorar introduções
-      const number = parseInt(c.number, 10);
-      if (Number.isNaN(number)) continue;
-
-      const chapter = await this.prisma.bibleChapter.upsert({
-        where: { bookId_number: { bookId, number } },
-        update: {},
-        create: { bookId, number },
-      });
-
-      await this.importVerses(bibleId, c.id, chapter.id);
-      chaptersCount++;
-      await this.sleep(150);
-    }
-
-    await this.prisma.bibleBook.update({
-      where: { id: bookId },
-      data: { chaptersCount },
+    const chapter = await this.prisma.bibleChapter.upsert({
+      where: { bookId_number: { bookId, number: chapterNumber } },
+      update: { versesCount: chapterData.verses.length },
+      create: { bookId, number: chapterNumber, versesCount: chapterData.verses.length },
     });
-  }
 
-  private async importVerses(bibleId: string, apiChapterId: string, chapterId: string) {
-    const chapterContent = await this.request<{ content: string; reference: string }>(
-      `/bibles/${bibleId}/chapters/${apiChapterId}?content-type=text&include-verse-numbers=true`,
-    );
-
-    // A API devolve o texto do capítulo com marcadores [n] por versículo.
-    const verseMatches = [...chapterContent.content.matchAll(/\[(\d+)\]\s*([^[]+)/g)];
-
-    let versesCount = 0;
-    for (const match of verseMatches) {
-      const number = parseInt(match[1], 10);
-      const text = match[2].trim();
+    for (let i = 0; i < chapterData.verses.length; i++) {
+      const verseNumber = i + 1;
+      const text = chapterData.verses[i];
       if (!text) continue;
 
       await this.prisma.bibleVerse.upsert({
-        where: { chapterId_number: { chapterId, number } },
+        where: { chapterId_number: { chapterId: chapter.id, number: verseNumber } },
         update: { text },
         create: {
-          chapterId,
-          number,
+          chapterId: chapter.id,
+          number: verseNumber,
           text,
-          reference: `${chapterContent.reference}:${number}`,
+          reference: `${chapterData.bookName} ${chapterNumber}:${verseNumber}`,
         },
       });
-      versesCount++;
     }
-
-    await this.prisma.bibleChapter.update({
-      where: { id: chapterId },
-      data: { versesCount },
-    });
-  }
-
-  private slugify(name: string) {
-    return name
-      .normalize('NFD')
-      .replace(/[̀-ͯ]/g, '')
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '');
   }
 }

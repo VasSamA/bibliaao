@@ -54,10 +54,10 @@ export class BibleController {
   }
 
   @Roles(UserRole.ADMINISTRADOR, UserRole.SUPER_ADMINISTRADOR)
-  @Post('importar/:bibleId')
-  triggerImport(@Param('bibleId') bibleId: string) {
+  @Post('importar/:versao')
+  triggerImport(@Param('versao') versao: string) {
     // Executa de forma assíncrona; ver logs do servidor para progresso.
-    this.importService.importVersion(bibleId);
-    return { message: `Importação da versão ${bibleId} iniciada. Acompanhe os logs do servidor.` };
+    this.importService.importVersion(versao);
+    return { message: `Importação da versão "${versao}" iniciada. Acompanhe os logs do servidor.` };
   }
 }

@@ -37,12 +37,11 @@ Ver `docs/ARQUITETURA.md` para o diagrama e explicação completa do sistema
 ### 1. Pré-requisitos
 - Node.js >= 20
 - Docker + Docker Compose
-- Conta em https://scripture.api.bible/ (chave de API para importar o texto bíblico)
 
 ### 2. Configurar variáveis de ambiente
 ```bash
 cp .env.example .env
-# preencher DATABASE_URL, API_BIBLE_KEY, JWT secrets, etc.
+# preencher DATABASE_URL, JWT secrets, etc.
 ```
 
 ### 3. Subir serviços de infraestrutura (Postgres + Meilisearch)
@@ -62,12 +61,13 @@ npm run prisma:migrate
 npm run prisma:seed
 ```
 
-### 6. Importar texto bíblico (API.Bible)
+### 6. Importar texto bíblico (Midvash API — gratuita, sem chave)
 ```bash
 npm run bible:import
 ```
-Isto lê `API_BIBLE_KEY` e `API_BIBLE_VERSION_IDS` do `.env` e popula
-`bible_versions`, `bible_books`, `bible_chapters`, `bible_verses`.
+Isto lê `MIDVASH_VERSION_SLUGS` do `.env` (por omissão, `ara`) e popula
+`bible_versions`, `bible_books`, `bible_chapters`, `bible_verses` a partir de
+https://api.midvash.com/ (86 versões disponíveis, ver `/v1/versions`).
 Ver `apps/api/src/modules/bible/import/bible-import.service.ts`.
 
 ### 7. Arrancar aplicações
