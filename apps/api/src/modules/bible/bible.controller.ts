@@ -1,4 +1,4 @@
-import { Controller, Get, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
+import { Controller, Get, Logger, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { BibleService } from './bible.service';
 import { BibleImportService } from './import/bible-import.service';
@@ -9,6 +9,8 @@ import { UserRole } from '@prisma/client';
 @ApiTags('biblia')
 @Controller('biblia')
 export class BibleController {
+  private readonly logger = new Logger(BibleController.name);
+
   constructor(
     private readonly bibleService: BibleService,
     private readonly importService: BibleImportService,
@@ -57,7 +59,13 @@ export class BibleController {
   @Post('importar/:versao')
   triggerImport(@Param('versao') versao: string) {
     // Executa de forma assíncrona; ver logs do servidor para progresso.
-    this.importService.importVersion(versao);
+    // .catch() é crítico aqui: sem isto, qualquer erro não tratado dentro da
+    // importação (rede, Cloudflare, BD) rejeita esta promise "solta" e o Node
+    // crasha o processo inteiro (unhandled rejection), levando a Container App
+    // a reiniciar e a perder o progresso a meio.
+    this.importService.importVersion(versao).catch((err) => {
+      this.logger.error(`Importação da versão "${versao}" falhou: ${(err as Error).message}`);
+    });
     return { message: `Importação da versão "${versao}" iniciada. Acompanhe os logs do servidor.` };
   }
 }

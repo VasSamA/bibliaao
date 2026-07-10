@@ -91,32 +91,44 @@ export class BibleImportService {
       .sort((a, b) => a.id - b.id);
 
     for (const book of relevantBooks) {
-      const slug = book.slug['pt-br'] ?? book.slug.en;
-      const name = book.name['pt-br'] ?? book.name.en;
-      const abbreviation = book.abbrev['pt-br'] ?? book.abbrev.en;
-      const testament = book.testament === 'old' ? 'AT' : 'NT';
+      // Todo o processamento de um livro corre protegido: se qualquer coisa falhar
+      // (rede, Cloudflare, erro de BD) não deve derrubar o processo Node inteiro —
+      // isso é o que estava a acontecer antes (promise rejeitada sem .catch() mata
+      // o processo, a Container App reinicia, e a importação perde-se a meio).
+      try {
+        const slug = book.slug['pt-br'] ?? book.slug.en;
+        const name = book.name['pt-br'] ?? book.name.en;
+        const abbreviation = book.abbrev['pt-br'] ?? book.abbrev.en;
+        const testament = book.testament === 'old' ? 'AT' : 'NT';
 
-      const bookRecord = await this.prisma.bibleBook.upsert({
-        where: { versionId_slug: { versionId: version.id, slug } },
-        update: { name, abbreviation, chaptersCount: book.chapters },
-        create: {
-          versionId: version.id,
-          externalId: String(book.id),
-          slug,
-          name,
-          abbreviation,
-          testament,
-          order: book.id,
-          chaptersCount: book.chapters,
-        },
-      });
+        const bookRecord = await this.prisma.bibleBook.upsert({
+          where: { versionId_slug: { versionId: version.id, slug } },
+          update: { name, abbreviation, chaptersCount: book.chapters },
+          create: {
+            versionId: version.id,
+            externalId: String(book.id),
+            slug,
+            name,
+            abbreviation,
+            testament,
+            order: book.id,
+            chaptersCount: book.chapters,
+          },
+        });
 
-      for (let chapterNumber = 1; chapterNumber <= book.chapters; chapterNumber++) {
-        await this.importChapter(versionSlug, slug, chapterNumber, bookRecord.id);
-        await this.sleep(30); // ritmo gentil — a Midvash não exige, mas evita rajadas desnecessárias
+        for (let chapterNumber = 1; chapterNumber <= book.chapters; chapterNumber++) {
+          try {
+            await this.importChapter(versionSlug, slug, chapterNumber, bookRecord.id);
+          } catch (err) {
+            this.logger.warn(`Falha ao importar ${name} ${chapterNumber}: ${(err as Error).message}`);
+          }
+          await this.sleep(30); // ritmo gentil — a Midvash não exige, mas evita rajadas desnecessárias
+        }
+
+        this.logger.log(`  ${name}: ${book.chapters} capítulo(s) importado(s).`);
+      } catch (err) {
+        this.logger.warn(`Falha ao importar o livro "${book.name.en ?? book.id}": ${(err as Error).message}`);
       }
-
-      this.logger.log(`  ${name}: ${book.chapters} capítulo(s) importado(s).`);
     }
 
     this.logger.log(`Versão "${meta.name}" importada com sucesso (${relevantBooks.length} livros).`);
