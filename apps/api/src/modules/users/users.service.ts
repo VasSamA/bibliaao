@@ -1,6 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import * as argon2 from 'argon2';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { UserRole } from '@prisma/client';
 
 @Injectable()
@@ -49,5 +51,21 @@ export class UsersService {
   async deactivate(id: string) {
     await this.findOne(id);
     return this.prisma.user.update({ where: { id }, data: { isActive: false } });
+  }
+
+  async changePassword(id: string, dto: ChangePasswordDto) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) throw new NotFoundException('Utilizador não encontrado.');
+
+    const currentValid = await argon2.verify(user.passwordHash, dto.currentPassword);
+    if (!currentValid) throw new UnauthorizedException('Senha atual incorreta.');
+
+    if (dto.newPassword === dto.currentPassword) {
+      throw new BadRequestException('A nova senha deve ser diferente da atual.');
+    }
+
+    const passwordHash = await argon2.hash(dto.newPassword);
+    await this.prisma.user.update({ where: { id }, data: { passwordHash } });
+    return { message: 'Senha alterada com sucesso.' };
   }
 }

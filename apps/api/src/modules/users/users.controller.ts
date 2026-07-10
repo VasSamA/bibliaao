@@ -3,6 +3,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '@prisma/client';
@@ -20,6 +21,11 @@ export class UsersController {
   @Patch('perfil')
   updateProfile(@CurrentUser() user: { id: string }, @Body() dto: UpdateUserDto) {
     return this.usersService.update(user.id, dto);
+  }
+
+  @Patch('perfil/senha')
+  changePassword(@CurrentUser() user: { id: string }, @Body() dto: ChangePasswordDto) {
+    return this.usersService.changePassword(user.id, dto);
   }
 
   @Roles(UserRole.MODERADOR, UserRole.ADMINISTRADOR, UserRole.SUPER_ADMINISTRADOR)
