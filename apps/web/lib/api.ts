@@ -1,8 +1,18 @@
 /**
  * Cliente de acesso à API do Biblia.ao (apps/api).
- * Em produção, o Next.js reescreve /api/backend/* para a API real (ver next.config.js).
+ *
+ * Nota: não usar um caminho começado por "/api/" para chamadas do browser —
+ * a Azure Static Web Apps reserva esse prefixo para as suas próprias Azure
+ * Functions e devolve 404 antes mesmo de chegar ao Next.js. Por isso o
+ * browser chama a Container App diretamente (autorizado via CORS_ORIGINS).
  */
-const BASE_URL = typeof window === 'undefined' ? process.env.API_URL ?? 'http://localhost:4000/api/v1' : '/api/backend';
+const PRODUCTION_API_URL =
+  'https://biblia-production-api.victoriousplant-a5611e3c.westeurope.azurecontainerapps.io/api/v1';
+
+const BASE_URL =
+  typeof window === 'undefined'
+    ? process.env.API_URL ?? 'http://localhost:4000/api/v1'
+    : process.env.NEXT_PUBLIC_API_URL ?? PRODUCTION_API_URL;
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = typeof window !== 'undefined' ? localStorage.getItem('biblia_access_token') : null;
