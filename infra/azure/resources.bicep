@@ -27,16 +27,24 @@ param apiBibleKey string
 param openAiApiKey string
 
 var prefix = 'biblia-${environmentName}'
-var storageAccountName = replace('st${prefix}${uniqueString(resourceGroup().id)}', '-', '')
-var postgresServerName = '${prefix}-pg'
-var keyVaultName = take('kv-${prefix}-${uniqueString(resourceGroup().id)}', 24)
-var acrName = replace('acr${prefix}${uniqueString(resourceGroup().id)}', '-', '')
+var uniqueSuffix = uniqueString(resourceGroup().id)
+// Storage account: só letras minúsculas/números, máx. 24 caracteres — sem espaço
+// para o nome completo do ambiente, por isso usa-se um prefixo curto fixo.
+var storageAccountName = toLower(take('stbiblia${uniqueSuffix}', 24))
+// Nomes com âmbito global no Azure (têm de ser únicos em toda a plataforma,
+// não só no resource group) levam o uniqueSuffix anexado.
+var postgresServerName = '${prefix}-pg-${uniqueSuffix}'
+// Key Vault: máx. 24 caracteres — o uniqueSuffix vem logo a seguir ao prefixo
+// fixo para nunca ser cortado (é o que garante unicidade global).
+var keyVaultName = take('kv-${uniqueSuffix}-${prefix}', 24)
+var acrName = replace('acr${prefix}${uniqueSuffix}', '-', '')
+var staticWebAppName = '${prefix}-web-${uniqueSuffix}'
+var openAiAccountName = '${prefix}-openai-${uniqueSuffix}'
+// Nomes só precisam de ser únicos dentro do resource group:
 var logAnalyticsName = '${prefix}-logs'
 var appInsightsName = '${prefix}-insights'
 var containerAppsEnvName = '${prefix}-cae'
 var apiContainerAppName = '${prefix}-api'
-var staticWebAppName = '${prefix}-web'
-var openAiAccountName = '${prefix}-openai'
 
 // ---------- Observabilidade ----------
 
@@ -264,7 +272,4 @@ output apiUrl string = 'https://${apiContainerApp.properties.configuration.ingre
 output webUrl string = 'https://${staticWebApp.properties.defaultHostname}'
 output storageAccountName string = storageAccount.name
 output storageBlobEndpoint string = storageAccount.properties.primaryEndpoints.blob
-output postgresHost string = postgresServer.properties.fullyQualifiedDomainName
-output keyVaultName string = keyVault.name
-output containerRegistryLoginServer string = acr.properties.loginServer
-output openAiEndpoint string = openAiAccount.properties.endpoint
+output postgresH
