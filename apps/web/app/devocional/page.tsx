@@ -34,7 +34,7 @@ export default async function DevocionalPage() {
       <h1 className="font-serif text-3xl font-semibold mb-6">{d.title}</h1>
 
       <blockquote className="verse-text mb-6 border-l-4 border-gold-500 pl-4 italic text-lg">
-        "{d.verseText}" <span className="not-italic text-sm text-gold-600">— {d.verseReference}</span>
+        &ldquo;{d.verseText}&rdquo; <span className="not-italic text-sm text-gold-600">— {d.verseReference}</span>
       </blockquote>
 
       <p className="mb-6 leading-relaxed">{d.reflection}</p>
