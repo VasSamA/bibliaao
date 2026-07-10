@@ -1,0 +1,83 @@
+name: Deploy Azure — Biblia.ao
+
+# Publica a API (Azure Container Apps) e o frontend (Azure Static Web Apps)
+# após os recursos terem sido provisionados via infra/azure (Bicep).
+#
+# Pré-requisitos (configurar uma vez):
+#   1. Provisionar a infraestrutura: ver infra/azure/README.md
+#   2. Criar uma federated credential (OIDC) para este repositório em
+#      Azure AD (App Registration) — evita guardar segredos de longa duração.
+#      https://learn.microsoft.com/azure/developer/github/connect-from-azure
+#   3. Definir os secrets do repositório GitHub:
+#      AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID,
+#      AZURE_RESOURCE_GROUP, AZURE_CONTAINER_REGISTRY, AZURE_CONTAINER_APP_NAME,
+#      AZURE_STATIC_WEB_APPS_API_TOKEN
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/api/**'
+      - 'apps/web/**'
+      - 'infra/azure/**'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-api:
+    name: Deploy API → Azure Container Apps
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build e publicar imagem no Azure Container Registry
+        run: |
+          az acr build \
+            --registry ${{ secrets.AZURE_CONTAINER_REGISTRY }} \
+            --image biblia-ao-api:${{ github.sha }} \
+            --image biblia-ao-api:latest \
+            apps/api
+
+      - name: Atualizar Container App com a nova imagem
+        run: |
+          az containerapp update \
+            --name ${{ secrets.AZURE_CONTAINER_APP_NAME }} \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --image ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/biblia-ao-api:${{ github.sha }}
+
+      - name: Aplicar migrações Prisma em produção
+        working-directory: apps/api
+        run: |
+          npm install
+          npx prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+  deploy-web:
+    name: Deploy Web → Azure Static Web Apps
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Deploy para Azure Static Web Apps
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: 'apps/web'
+          output_location: '.next'
+        env:
+          API_URL: ${{ secrets.API_URL }}
