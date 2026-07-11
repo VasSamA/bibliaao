@@ -223,9 +223,13 @@ push — esse job funciona. O job `deploy-api` no mesmo workflow **falha sempre*
   em lotes de 5000, não upsert um a um). Verificado com Génesis 1:1 (62
   referências, ex. "Hebreus 11:3" com 271 votos — bate certo com o ficheiro
   fonte).
-- **Por fazer**: ainda não há UI no frontend a mostrar isto (o pedido original
-  do utilizador mostrava um separador "Referência" por baixo do versículo,
-  como no site de referência). Backend pronto a usar.
+- **UI concluída e confirmada em produção (2026-07-11, commit `c9883b9`)**:
+  botão "Referências" na barra de ações de cada versículo
+  (`apps/web/components/VerseReader.tsx`), carrega sob pedido e mostra as
+  referências como chips clicáveis. Testado em produção (não em local — a
+  API só aceita CORS do domínio de produção): Génesis 1:1 mostra as 62
+  referências pela ordem certa de votos, e clicar num chip (ex. "Jó 38:4")
+  navega corretamente para esse capítulo.
 
 ## Pendências (por ordem de prioridade sugerida)
 
@@ -269,7 +273,5 @@ push — esse job funciona. O job `deploy-api` no mesmo workflow **falha sempre*
 11. ACF (Almeida Corrigida Fiel) — pedido pelo utilizador, adiado por licenciamento;
     ver "Estado da importação bíblica" acima. Se decidido avançar, contactar a SBTB
     para autorização de uso completo antes de importar.
-12. UI no frontend para mostrar referências cruzadas por versículo — backend pronto
-    (ver secção "Referências cruzadas" acima), falta consumir
-    `GET /biblia/:versao/:livro/:capitulo/:versiculo/referencias` no `VerseReader.tsx`
-    (ex.: um separador/painel como no site de referência do utilizador).
+12. ~~UI no frontend para mostrar referências cruzadas~~ — **FEITO (2026-07-11)**,
+    ver secção "Referências cruzadas" acima.
