@@ -196,6 +196,37 @@ push — esse job funciona. O job `deploy-api` no mesmo workflow **falha sempre*
   já só com JFA; tratar do ACF/SBTB mais tarde se o utilizador quiser mesmo essa
   versão.
 
+## Referências cruzadas entre versículos (2026-07-11)
+
+- **Dataset**: openbible.info, ~345 mil referências (Treasury of Scripture
+  Knowledge + votação da comunidade), licença CC-BY. Download:
+  `https://a.openbible.info/data/cross-references.zip` (zip com um `.txt`
+  TSV: `From Verse / To Verse / Votes`, notação `Livro.Capítulo.Versículo`,
+  intervalos como `Ps.148.4-Ps.148.5`).
+- **Arquitetura**: `apps/api/src/modules/bible/import/cross-reference-import.service.ts`
+  guarda em `bible_cross_references` por **código canónico de livro**
+  (mesmo esquema de `BibleBook.externalId` do import USFX — "GEN", "JOS",
+  etc.), sem FK para `bible_verses`. Propositado: qualquer versão nova que
+  venha a ser importada com esse esquema de códigos herda automaticamente
+  este conjunto de referências, sem reimportar nada. Se uma futura versão
+  usar outro esquema de códigos (ex.: id numérico da Midvash, como a "ARA"
+  antiga), as referências não resolvem para essa versão — manter o esquema
+  de `externalId` USFX consistente em qualquer import futuro.
+- **Endpoints**: `POST /biblia/importar-referencias-cruzadas` (admin) dispara
+  a importação (idempotente — apaga tudo e reinsere); `GET
+  /biblia/:versao/:livro/:capitulo/:versiculo/referencias` (público) devolve
+  as referências já resolvidas para nomes/slugs da versão pedida, ordenadas
+  por votos.
+- **CONCLUÍDO e confirmado (2026-07-11)**: schema aplicado em produção
+  (`prisma db push`), API deployada, importação disparada e confirmada —
+  **344.799/344.799 gravadas**, sem falhas, em ~2 minutos (usa `createMany`
+  em lotes de 5000, não upsert um a um). Verificado com Génesis 1:1 (62
+  referências, ex. "Hebreus 11:3" com 271 votos — bate certo com o ficheiro
+  fonte).
+- **Por fazer**: ainda não há UI no frontend a mostrar isto (o pedido original
+  do utilizador mostrava um separador "Referência" por baixo do versículo,
+  como no site de referência). Backend pronto a usar.
+
 ## Pendências (por ordem de prioridade sugerida)
 
 1. ~~Confirmar conclusão da importação bíblica~~ — **FEITO (2026-07-11)**: versão
@@ -238,3 +269,7 @@ push — esse job funciona. O job `deploy-api` no mesmo workflow **falha sempre*
 11. ACF (Almeida Corrigida Fiel) — pedido pelo utilizador, adiado por licenciamento;
     ver "Estado da importação bíblica" acima. Se decidido avançar, contactar a SBTB
     para autorização de uso completo antes de importar.
+12. UI no frontend para mostrar referências cruzadas por versículo — backend pronto
+    (ver secção "Referências cruzadas" acima), falta consumir
+    `GET /biblia/:versao/:livro/:capitulo/:versiculo/referencias` no `VerseReader.tsx`
+    (ex.: um separador/painel como no site de referência do utilizador).
