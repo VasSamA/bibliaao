@@ -211,9 +211,12 @@ push — esse job funciona. O job `deploy-api` no mesmo workflow **falha sempre*
      literal a ignorar o secret) na secção "Incidente resolvido: outage de
      autenticação à BD" acima. **Lição**: não correr duas sessões a mexer na mesma
      infraestrutura de produção ao mesmo tempo.
-2. `apps/web/app/biblia/page.tsx` já foi corrigido para buscar livros reais da API
-   (antes era uma lista estática fake) — confirmar que está em produção, e que o
-   frontend consegue mostrar a versão `JFA` (pode estar hardcoded para "ARA").
+2. ~~`apps/web/app/biblia/page.tsx` hardcoded para "ARA"~~ — **FEITO (2026-07-11,
+   commit `8256207`)**: a página estava fixa no código "ARA" (por isso continuava
+   a mostrar só João mesmo depois de a JFA ser importada e marcada `isDefault`).
+   Corrigido para buscar a versão via `GET /biblia/versoes` e usar a que tiver
+   `isDefault: true`. Deploy automático via `deploy-web` (GitHub Actions) — confirmar
+   visualmente em produção após alguns minutos.
 3. CI (`ci.yml`) falha (API exit 127, Web exit 1) — nunca investigado, não bloqueante.
 4. Job `deploy-api` do GitHub Actions falha por falta de OIDC (client-id/tenant-id não
    configurados). Configurar federated credentials + secrets
