@@ -3,6 +3,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { BibleService } from './bible.service';
 import { BibleImportService } from './import/bible-import.service';
 import { UsfxImportService } from './import/usfx-import.service';
+import { CrossReferenceImportService } from './import/cross-reference-import.service';
 import { Public } from '../../common/decorators/public.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
@@ -20,6 +21,7 @@ export class BibleController {
     private readonly bibleService: BibleService,
     private readonly importService: BibleImportService,
     private readonly usfxImportService: UsfxImportService,
+    private readonly crossReferenceImportService: CrossReferenceImportService,
   ) {}
 
   @Public()
@@ -48,6 +50,17 @@ export class BibleController {
   @Get(':versao/pesquisa')
   search(@Param('versao') versao: string, @Query('q') q: string, @Query('limit') limit?: string) {
     return this.bibleService.searchVerses(versao, q, limit ? Number(limit) : undefined);
+  }
+
+  @Public()
+  @Get(':versao/:livro/:capitulo/:versiculo/referencias')
+  getCrossReferences(
+    @Param('versao') versao: string,
+    @Param('livro') livro: string,
+    @Param('capitulo', ParseIntPipe) capitulo: number,
+    @Param('versiculo', ParseIntPipe) versiculo: number,
+  ) {
+    return this.bibleService.getCrossReferences(versao, livro, capitulo, versiculo);
   }
 
   @Public()
@@ -89,5 +102,14 @@ export class BibleController {
         this.logger.error(`Importação USFX "JFA" falhou: ${(err as Error).message}`);
       });
     return { message: 'Importação "JFA" (domínio público) iniciada. Acompanhe os logs do servidor.' };
+  }
+
+  @Roles(UserRole.ADMINISTRADOR, UserRole.SUPER_ADMINISTRADOR)
+  @Post('importar-referencias-cruzadas')
+  triggerCrossReferenceImport() {
+    this.crossReferenceImportService.importFromOpenBible().catch((err) => {
+      this.logger.error(`Importação de referências cruzadas falhou: ${(err as Error).message}`);
+    });
+    return { message: 'Importação de referências cruzadas iniciada. Acompanhe os logs do servidor.' };
   }
 }

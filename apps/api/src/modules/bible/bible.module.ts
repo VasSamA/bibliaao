@@ -3,6 +3,7 @@ import { BibleService } from './bible.service';
 import { BibleController } from './bible.controller';
 import { BibleImportService } from './import/bible-import.service';
 import { UsfxImportService } from './import/usfx-import.service';
+import { CrossReferenceImportService } from './import/cross-reference-import.service';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Module({
@@ -17,6 +18,11 @@ import { PrismaService } from '../../prisma/prisma.service';
     {
       provide: UsfxImportService,
       useFactory: (prisma: PrismaService) => new UsfxImportService(prisma as any),
+      inject: [PrismaService],
+    },
+    {
+      provide: CrossReferenceImportService,
+      useFactory: (prisma: PrismaService) => new CrossReferenceImportService(prisma as any),
       inject: [PrismaService],
     },
   ],

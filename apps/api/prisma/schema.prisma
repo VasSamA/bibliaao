@@ -211,6 +211,28 @@ model BibleVerse {
   @@map("bible_verses")
 }
 
+// Referências cruzadas entre versículos — independente de versão. Usa códigos
+// canónicos de livro (o mesmo esquema de `BibleBook.externalId` usado pelo
+// import USFX, ex: "GEN", "JOS") em vez de FKs para bible_verses, para que o
+// mesmo conjunto de dados sirva qualquer versão importada com esse esquema,
+// sem reimportar nada quando uma versão nova for adicionada.
+model BibleCrossReference {
+  id            String  @id @default(uuid())
+  fromBook      String
+  fromChapter   Int
+  fromVerse     Int
+  toBook        String
+  toChapter     Int
+  toVerse       Int
+  toBookEnd     String? // preenchido só quando o destino é um intervalo
+  toChapterEnd  Int?
+  toVerseEnd    Int?
+  votes         Int     @default(0)
+
+  @@index([fromBook, fromChapter, fromVerse])
+  @@map("bible_cross_references")
+}
+
 // ---------- Estudos, Devocionais, Artigos ----------
 
 model Study {

@@ -67,6 +67,50 @@ export class BibleService {
     return results;
   }
 
+  async getCrossReferences(versionCode: string, bookSlug: string, chapterNumber: number, verseNumber: number) {
+    const version = await this.getVersion(versionCode);
+    const book = await this.prisma.bibleBook.findUnique({
+      where: { versionId_slug: { versionId: version.id, slug: bookSlug } },
+    });
+    if (!book || !book.externalId) throw new NotFoundException('Livro não encontrado.');
+
+    const refs = await this.prisma.bibleCrossReference.findMany({
+      where: { fromBook: book.externalId, fromChapter: chapterNumber, fromVerse: verseNumber },
+      orderBy: { votes: 'desc' },
+    });
+
+    const results = [];
+    for (const ref of refs) {
+      const toBook = await this.prisma.bibleBook.findFirst({
+        where: { versionId: version.id, externalId: ref.toBook },
+      });
+      if (!toBook) continue; // versão ainda não tem este livro importado
+
+      let referencia = `${toBook.name} ${ref.toChapter}:${ref.toVerse}`;
+      if (ref.toVerseEnd) {
+        if (ref.toBookEnd && ref.toBookEnd !== ref.toBook) {
+          const toBookEnd = await this.prisma.bibleBook.findFirst({
+            where: { versionId: version.id, externalId: ref.toBookEnd },
+          });
+          if (toBookEnd) referencia += ` - ${toBookEnd.name} ${ref.toChapterEnd}:${ref.toVerseEnd}`;
+        } else if (ref.toChapterEnd && ref.toChapterEnd !== ref.toChapter) {
+          referencia += `-${ref.toChapterEnd}:${ref.toVerseEnd}`;
+        } else {
+          referencia += `-${ref.toVerseEnd}`;
+        }
+      }
+
+      results.push({
+        referencia,
+        livro: toBook.slug,
+        capitulo: ref.toChapter,
+        versiculo: ref.toVerse,
+        votos: ref.votes,
+      });
+    }
+    return results;
+  }
+
   private async getVersion(code: string) {
     const version = await this.prisma.bibleVersion.findUnique({ where: { code } });
     if (!version) throw new NotFoundException(`Versão bíblica "${code}" não encontrada.`);
