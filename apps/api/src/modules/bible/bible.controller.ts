@@ -2,9 +2,14 @@ import { Controller, Get, Logger, Param, ParseIntPipe, Post, Query } from '@nest
 import { ApiTags } from '@nestjs/swagger';
 import { BibleService } from './bible.service';
 import { BibleImportService } from './import/bible-import.service';
+import { UsfxImportService } from './import/usfx-import.service';
 import { Public } from '../../common/decorators/public.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
+
+// Fonte de domínio público (João Ferreira de Almeida) — ver usfx-import.service.ts.
+const JFA_USFX_URL =
+  'https://raw.githubusercontent.com/seven1m/open-bibles/master/por-almeida.usfx.xml';
 
 @ApiTags('biblia')
 @Controller('biblia')
@@ -14,6 +19,7 @@ export class BibleController {
   constructor(
     private readonly bibleService: BibleService,
     private readonly importService: BibleImportService,
+    private readonly usfxImportService: UsfxImportService,
   ) {}
 
   @Public()
@@ -67,5 +73,21 @@ export class BibleController {
       this.logger.error(`Importação da versão "${versao}" falhou: ${(err as Error).message}`);
     });
     return { message: `Importação da versão "${versao}" iniciada. Acompanhe os logs do servidor.` };
+  }
+
+  @Roles(UserRole.ADMINISTRADOR, UserRole.SUPER_ADMINISTRADOR)
+  @Post('importar-dominio-publico')
+  triggerUsfxImport() {
+    this.usfxImportService
+      .importFromUrl(JFA_USFX_URL, {
+        code: 'JFA',
+        name: 'João Ferreira de Almeida (domínio público)',
+        description:
+          'Tradução de João Ferreira de Almeida, edição de domínio público, via projeto open-bibles.',
+      })
+      .catch((err) => {
+        this.logger.error(`Importação USFX "JFA" falhou: ${(err as Error).message}`);
+      });
+    return { message: 'Importação "JFA" (domínio público) iniciada. Acompanhe os logs do servidor.' };
   }
 }

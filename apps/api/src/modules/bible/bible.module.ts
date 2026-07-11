@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { BibleService } from './bible.service';
 import { BibleController } from './bible.controller';
 import { BibleImportService } from './import/bible-import.service';
+import { UsfxImportService } from './import/usfx-import.service';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Module({
@@ -11,6 +12,11 @@ import { PrismaService } from '../../prisma/prisma.service';
     {
       provide: BibleImportService,
       useFactory: (prisma: PrismaService) => new BibleImportService(prisma as any),
+      inject: [PrismaService],
+    },
+    {
+      provide: UsfxImportService,
+      useFactory: (prisma: PrismaService) => new UsfxImportService(prisma as any),
       inject: [PrismaService],
     },
   ],
