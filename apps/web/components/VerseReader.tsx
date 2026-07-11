@@ -2,10 +2,13 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Bookmark, ChevronLeft, ChevronRight, Copy, Share2, StickyNote } from 'lucide-react';
+import { Bookmark, ChevronLeft, ChevronRight, Copy, Link2, Share2, StickyNote } from 'lucide-react';
 import clsx from 'clsx';
+import { api } from '../lib/api';
 
 export type Verse = { id: string; number: number; text: string; reference: string };
+
+type CrossRef = { referencia: string; livro: string; capitulo: number; versiculo: number; votos: number };
 
 const COLOR_TAGS = [
   { key: 'amarelo', className: 'bg-yellow-200/70 dark:bg-yellow-500/30' },
@@ -33,6 +36,24 @@ export function VerseReader({
   const [focusMode, setFocusMode] = useState(false);
   const [highlighted, setHighlighted] = useState<Record<string, string>>({});
   const [activeVerse, setActiveVerse] = useState<string | null>(null);
+  const [crossRefs, setCrossRefs] = useState<Record<string, CrossRef[] | 'loading' | 'erro'>>({});
+  const [openCrossRefs, setOpenCrossRefs] = useState<string | null>(null);
+
+  async function toggleCrossRefs(v: Verse) {
+    if (openCrossRefs === v.id) {
+      setOpenCrossRefs(null);
+      return;
+    }
+    setOpenCrossRefs(v.id);
+    if (crossRefs[v.id]) return;
+    setCrossRefs((prev) => ({ ...prev, [v.id]: 'loading' }));
+    try {
+      const data = await api.get<CrossRef[]>(`/biblia/${versao}/${livroSlug}/${chapterNumber}/${v.number}/referencias`);
+      setCrossRefs((prev) => ({ ...prev, [v.id]: data }));
+    } catch {
+      setCrossRefs((prev) => ({ ...prev, [v.id]: 'erro' }));
+    }
+  }
 
   function toggleHighlight(verseId: string, colorKey: string) {
     setHighlighted((prev) => {
@@ -115,6 +136,12 @@ export function VerseReader({
                 <button onClick={() => shareVerse(v)} className="flex items-center gap-1 hover:text-gold-600"><Share2 size={14} /> Partilhar</button>
                 <button className="flex items-center gap-1 hover:text-gold-600"><Bookmark size={14} /> Favorito</button>
                 <button className="flex items-center gap-1 hover:text-gold-600"><StickyNote size={14} /> Nota</button>
+                <button
+                  onClick={() => toggleCrossRefs(v)}
+                  className={clsx('flex items-center gap-1 hover:text-gold-600', openCrossRefs === v.id && 'text-gold-600')}
+                >
+                  <Link2 size={14} /> Referências
+                </button>
                 <span className="mx-1 text-sacred-300">|</span>
                 {COLOR_TAGS.map((c) => (
                   <button
@@ -124,6 +151,29 @@ export function VerseReader({
                     aria-label={`Marcar com cor ${c.key}`}
                   />
                 ))}
+              </div>
+            )}
+
+            {activeVerse === v.id && openCrossRefs === v.id && (
+              <div
+                className="not-verse-text mt-2 flex flex-wrap gap-2 rounded-lg border border-sacred-100 dark:border-sacred-700 bg-parchment-50 dark:bg-sacred-900 p-2 text-sm"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {crossRefs[v.id] === 'loading' && <span className="text-sacred-400">A carregar...</span>}
+                {crossRefs[v.id] === 'erro' && <span className="text-sacred-400">Não foi possível obter referências.</span>}
+                {Array.isArray(crossRefs[v.id]) && (crossRefs[v.id] as CrossRef[]).length === 0 && (
+                  <span className="text-sacred-400">Sem referências cruzadas para este versículo.</span>
+                )}
+                {Array.isArray(crossRefs[v.id]) &&
+                  (crossRefs[v.id] as CrossRef[]).map((ref, i) => (
+                    <Link
+                      key={i}
+                      href={`/biblia/${versao}/${ref.livro}/${ref.capitulo}`}
+                      className="rounded-full border border-sacred-200 bg-white px-3 py-1 text-sacred-700 hover:border-gold-500 hover:text-gold-600 dark:border-sacred-600 dark:bg-sacred-800 dark:text-parchment-100"
+                    >
+                      {ref.referencia}
+                    </Link>
+                  ))}
               </div>
             )}
           </div>
