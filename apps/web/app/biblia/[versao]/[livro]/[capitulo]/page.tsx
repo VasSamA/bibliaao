@@ -24,16 +24,26 @@ async function getChapter(versao: string, livro: string, capitulo: string) {
       const data = await res.json();
       return {
         bookName: data.book.name as string,
+        chaptersCount: data.book.chaptersCount as number,
         verses: data.chapter.verses.map((v: any) => ({ id: v.id, number: v.number, text: v.text, reference: v.reference })) as Verse[],
       };
     }
   } catch {
     // API indisponível — usar conteúdo de exemplo abaixo.
   }
-  return CHAPTER_FALLBACK[`${livro}-${capitulo}`] ?? CHAPTER_FALLBACK['joao-3'];
+  return { ...(CHAPTER_FALLBACK[`${livro}-${capitulo}`] ?? CHAPTER_FALLBACK['joao-3']), chaptersCount: 1 };
 }
 
 export default async function ChapterPage({ params }: { params: Params }) {
-  const { bookName, verses } = await getChapter(params.versao, params.livro, params.capitulo);
-  return <VerseReader verses={verses} bookName={bookName} chapterNumber={Number(params.capitulo)} />;
+  const { bookName, verses, chaptersCount } = await getChapter(params.versao, params.livro, params.capitulo);
+  return (
+    <VerseReader
+      verses={verses}
+      bookName={bookName}
+      chapterNumber={Number(params.capitulo)}
+      chaptersCount={chaptersCount}
+      versao={params.versao}
+      livroSlug={params.livro}
+    />
+  );
 }

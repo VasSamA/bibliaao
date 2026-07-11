@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Bookmark, Copy, Share2, StickyNote } from 'lucide-react';
+import Link from 'next/link';
+import { Bookmark, ChevronLeft, ChevronRight, Copy, Share2, StickyNote } from 'lucide-react';
 import clsx from 'clsx';
 
 export type Verse = { id: string; number: number; text: string; reference: string };
@@ -13,7 +14,21 @@ const COLOR_TAGS = [
   { key: 'rosa', className: 'bg-pink-200/70 dark:bg-pink-600/30' },
 ];
 
-export function VerseReader({ verses, bookName, chapterNumber }: { verses: Verse[]; bookName: string; chapterNumber: number }) {
+export function VerseReader({
+  verses,
+  bookName,
+  chapterNumber,
+  chaptersCount,
+  versao,
+  livroSlug,
+}: {
+  verses: Verse[];
+  bookName: string;
+  chapterNumber: number;
+  chaptersCount: number;
+  versao: string;
+  livroSlug: string;
+}) {
   const [fontSize, setFontSize] = useState(18);
   const [focusMode, setFocusMode] = useState(false);
   const [highlighted, setHighlighted] = useState<Record<string, string>>({});
@@ -59,6 +74,25 @@ export function VerseReader({ verses, bookName, chapterNumber }: { verses: Verse
         </div>
       </div>
 
+      {chaptersCount > 1 && (
+        <div className="not-verse-text mb-6 flex flex-wrap gap-1.5">
+          {Array.from({ length: chaptersCount }, (_, i) => i + 1).map((n) => (
+            <Link
+              key={n}
+              href={`/biblia/${versao}/${livroSlug}/${n}`}
+              className={clsx(
+                'flex h-7 min-w-7 items-center justify-center rounded px-1.5 text-sm transition-colors',
+                n === chapterNumber
+                  ? 'bg-gold-500 font-semibold text-white dark:bg-gold-400 dark:text-sacred-900'
+                  : 'text-sacred-600 hover:bg-parchment-200 dark:text-parchment-200 dark:hover:bg-sacred-700',
+              )}
+            >
+              {n}
+            </Link>
+          ))}
+        </div>
+      )}
+
       <div className="space-y-1 verse-text" style={{ fontSize }}>
         {verses.map((v) => (
           <div
@@ -94,6 +128,29 @@ export function VerseReader({ verses, bookName, chapterNumber }: { verses: Verse
             )}
           </div>
         ))}
+      </div>
+
+      <div className="not-verse-text mt-10 flex items-center justify-between border-t border-parchment-200 pt-4 text-sm dark:border-sacred-700">
+        {chapterNumber > 1 ? (
+          <Link
+            href={`/biblia/${versao}/${livroSlug}/${chapterNumber - 1}`}
+            className="flex items-center gap-1 text-sacred-600 hover:text-gold-600 dark:text-parchment-200 dark:hover:text-gold-400"
+          >
+            <ChevronLeft size={16} /> Capítulo anterior
+          </Link>
+        ) : (
+          <span />
+        )}
+        {chapterNumber < chaptersCount ? (
+          <Link
+            href={`/biblia/${versao}/${livroSlug}/${chapterNumber + 1}`}
+            className="flex items-center gap-1 text-sacred-600 hover:text-gold-600 dark:text-parchment-200 dark:hover:text-gold-400"
+          >
+            Capítulo seguinte <ChevronRight size={16} />
+          </Link>
+        ) : (
+          <span />
+        )}
       </div>
     </div>
   );
