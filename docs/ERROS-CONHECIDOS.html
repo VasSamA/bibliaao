@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<title>Biblia.ao — Erros Conhecidos</title>
+<style>
+  :root {
+    --parchment-50: #fdfbf6;
+    --parchment-100: #f9f4e9;
+    --parchment-200: #f0e6cf;
+    --sacred-600: #2f4b91;
+    --sacred-700: #243a70;
+    --sacred-900: #131f3d;
+    --gold-500: #c49a3b;
+    --gold-600: #a67e28;
+    --ink-soft: #4b5a7a;
+    --hairline: var(--parchment-200);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--parchment-50);
+    color: var(--sacred-900);
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.6;
+  }
+  .page { max-width: 880px; margin: 0 auto; padding: 48px 24px 96px; }
+  h1, h2, h3 { font-family: Georgia, Cambria, "Times New Roman", serif; }
+  .masthead { border-bottom: 1px solid var(--hairline); padding-bottom: 18px; margin-bottom: 8px; }
+  .masthead .kicker { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.72rem; color: var(--gold-600); font-weight: 600; }
+  .masthead h1 { font-size: 1.6rem; margin: 4px 0; }
+  .lede { color: var(--ink-soft); font-size: 0.95rem; max-width: 68ch; margin: 16px 0 36px; }
+  .lede code { background: var(--parchment-100); border: 1px solid var(--hairline); padding: 1px 5px; border-radius: 4px; font-size: 0.85em; }
+
+  .entry {
+    border: 1px solid var(--hairline);
+    border-radius: 10px;
+    background: #fff;
+    padding: 0 26px 22px;
+    margin-bottom: 16px;
+  }
+  .entry[open] { padding-top: 4px; }
+  .entry-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 18px 0;
+    margin: 0 -26px;
+    padding-left: 26px;
+    padding-right: 26px;
+    cursor: pointer;
+    list-style: none;
+  }
+  .entry-head::-webkit-details-marker { display: none; }
+  .entry-head:hover h2 { color: var(--gold-600); }
+  .entry-head::before {
+    content: "▸";
+    color: var(--ink-soft);
+    font-size: 0.8rem;
+    margin-right: 10px;
+    flex-shrink: 0;
+    transition: transform 0.15s ease;
+  }
+  .entry[open] > .entry-head::before { transform: rotate(90deg); }
+  .entry-head h2 { font-size: 1.15rem; margin: 0; transition: color 0.15s ease; }
+  .entry-date { font-size: 0.8rem; color: var(--ink-soft); white-space: nowrap; }
+  .entry.no-match { display: none; }
+  .status {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 2px 9px;
+    border-radius: 999px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .status.resolvido { background: #e6f2ea; color: #1f7a4d; }
+  .status.transitorio { background: #eef4ff; color: var(--sacred-600); }
+
+  .entry h3 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gold-600); margin: 18px 0 6px; }
+  .entry h3:first-of-type { margin-top: 14px; }
+  .entry p, .entry ol, .entry ul { margin: 0 0 0; font-size: 0.93rem; }
+  .entry ol, .entry ul { padding-left: 22px; }
+  .entry li { margin-bottom: 4px; }
+  .entry code { background: var(--parchment-100); border: 1px solid var(--hairline); padding: 1px 5px; border-radius: 4px; font-size: 0.85em; }
+  .entry pre {
+    background: var(--sacred-900);
+    color: #eef1fb;
+    padding: 12px 14px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 0.82rem;
+    margin: 6px 0 0;
+  }
+  .screenshot {
+    max-width: 100%;
+    border: 1px solid var(--hairline);
+    border-radius: 8px;
+    margin: 8px 0 0;
+    display: block;
+  }
+  .screenshot-missing {
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    font-style: italic;
+    border: 1px dashed var(--hairline);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-top: 6px;
+  }
+
+  .howto {
+    margin-top: 44px;
+    padding-top: 24px;
+    border-top: 1px solid var(--hairline);
+    font-size: 0.92rem;
+    color: var(--ink-soft);
+  }
+  .howto h2 { color: var(--sacred-900); font-size: 1.05rem; }
+  .howto ol { padding-left: 22px; }
+  .howto li { margin-bottom: 8px; }
+  .howto code { background: var(--parchment-100); border: 1px solid var(--hairline); padding: 1px 5px; border-radius: 4px; }
+
+  .search-bar { position: relative; margin-bottom: 28px; }
+  .search-bar input {
+    width: 100%;
+    font-size: 0.95rem;
+    font-family: inherit;
+    padding: 11px 40px 11px 38px;
+    border: 1px solid var(--hairline);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--sacred-900);
+  }
+  .search-bar input:focus { outline: 2px solid var(--gold-500); outline-offset: -1px; }
+  .search-bar .icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+    pointer-events: none;
+  }
+  .search-count {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    pointer-events: none;
+  }
+  .no-results {
+    display: none;
+    color: var(--ink-soft);
+    font-size: 0.92rem;
+    font-style: italic;
+    padding: 12px 0 24px;
+  }
+  .no-results.show { display: block; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="masthead">
+    <div class="kicker">Registo vivo — atualizar a cada novo erro</div>
+    <h1>Biblia.ao — Erros Conhecidos</h1>
+  </div>
+  <p class="lede">
+    Este ficheiro existe para não repetir diagnósticos já feitos — o mesmo espírito do
+    <code>HANDOFF.md</code>, mas focado em incidentes e a forma como cada um foi resolvido.
+    Cada entrada nova vai <strong>no topo</strong> (mais recente primeiro). Antes de investigar
+    um erro à séria, procura aqui — pode já ter acontecido.
+  </p>
+
+  <div class="search-bar">
+    <span class="icon">🔍</span>
+    <input type="search" id="busca" placeholder="Pesquisar por sintoma, mensagem de erro, comando..." autocomplete="off">
+    <span class="search-count" id="busca-contagem"></span>
+  </div>
+
+  <div id="entradas">
+
+  <!-- ENTRADA 3 -->
+  <details class="entry" open>
+    <summary class="entry-head">
+      <h2>"Backend call failure" ao abrir /biblia <span class="status transitorio">Transitório — sem ação necessária</span></h2>
+      <span class="entry-date">2026-07-11</span>
+    </summary>
+
+    <h3>Sintoma</h3>
+    <p>Página <code>/biblia</code> em produção mostrou o texto simples "Backend call failure" em vez da lista de livros.</p>
+    <div class="screenshot-missing">
+      [Print fornecido pelo utilizador no chat, mas não guardado como ficheiro — para
+      o inserir aqui, guardar em <code>docs/erros-screenshots/2026-07-11-backend-call-failure.png</code>
+      e substituir este bloco por <code>&lt;img class="screenshot" src="erros-screenshots/2026-07-11-backend-call-failure.png"&gt;</code>.]
+    </div>
+
+    <h3>Procedimento seguido</h3>
+    <ol>
+      <li>Testar a API diretamente: <code>GET /api/v1/biblia/versoes</code> → devolveu 200 com os dados corretos. A API estava saudável.</li>
+      <li>Recarregar a página de produção diretamente no browser → carregou normalmente, sem erro.</li>
+      <li>Confirmar réplicas da Container App (<code>az containerapp replica list</code>) → 1 réplica, <code>Running</code>, sem reinícios desde o último deploy.</li>
+    </ol>
+
+    <h3>Causa</h3>
+    <p>Não reproduzida — provável timeout pontual de rede entre a Static Web App e a
+    Container App no momento exato do pedido (cold start ocasional, ou pico de latência).
+    Não houve crash nem reinício da API.</p>
+
+    <h3>Ação</h3>
+    <p>Nenhuma — recarregar a página resolve. Ver "Procedimento geral" no fundo deste
+    documento para os passos a seguir se voltar a acontecer e não desaparecer ao
+    recarregar.</p>
+  </details>
+
+  <!-- ENTRADA 2 -->
+  <details class="entry">
+    <summary class="entry-head">
+      <h2>Outage total da API — <code>DATABASE_URL</code> dessincronizado <span class="status resolvido">Resolvido</span></h2>
+      <span class="entry-date">2026-07-11</span>
+    </summary>
+
+    <h3>Sintoma</h3>
+    <p>Todos os endpoints da API a devolver <code>500 — Erro interno do servidor</code>.</p>
+
+    <h3>Procedimento seguido</h3>
+    <ol>
+      <li>Logs da Container App (<code>az containerapp logs show ... --tail 300</code>) → <code>PrismaClientInitializationError</code>, código <code>P1000</code>: "Authentication failed... for <code>biblia_admin</code> are not valid".</li>
+      <li>Verificado o Activity Log do resource group (<code>az monitor activity-log list</code>) → duas operações <code>Microsoft.DBforPostgreSQL/flexibleServers/write</code> pouco antes do outage — a password do Postgres tinha sido mudada diretamente no servidor.</li>
+      <li>Gerada password nova alfanumérica, aplicada no servidor (<code>az postgres flexible-server update --admin-password</code>) e no secret <code>database-url</code> da Container App (<code>az containerapp secret set</code>) + reinício da revisão.</li>
+      <li><strong>Continuou a falhar</strong> mesmo depois disto — diagnóstico mais fundo: <code>az containerapp show --query "properties.template.containers[0].env"</code> revelou que o env var <code>DATABASE_URL</code> real do container era um <strong>valor literal fixo</strong> (não uma referência ao secret <code>database-url</code>). O secret existia mas nunca tinha sido lido por nada.</li>
+      <li>Corrigido com <code>az containerapp update --set-env-vars "DATABASE_URL=secretref:database-url"</code>.</li>
+    </ol>
+
+    <h3>Causa raiz</h3>
+    <p>Duas causas empilhadas: (1) a password do Postgres foi alterada sem atualizar
+    onde quer que fosse consumida; (2) o env var <code>DATABASE_URL</code> nunca
+    esteve realmente ligado ao secret — provavelmente um resquício de uma versão
+    anterior do Bicep. Agravante: <strong>duas sessões de Claude Code em paralelo</strong>
+    (uma na Cloud Shell, outra local) mudaram a password de forma independente sem
+    coordenação, o que atrasou o diagnóstico.</p>
+
+    <h3>Ação / prevenção</h3>
+    <p>Sempre que mudar a password do Postgres, confirmar com o comando do passo 4
+    acima que o env var está mesmo em modo <code>secretref</code> antes de dar o
+    problema por resolvido. Não correr duas sessões a mexer na mesma infraestrutura
+    de produção ao mesmo tempo.</p>
+  </details>
+
+  <!-- ENTRADA 1 -->
+  <details class="entry">
+    <summary class="entry-head">
+      <h2>Importação bíblica bloqueada — Midvash API atrás de Cloudflare <span class="status resolvido">Resolvido (via mudança de fonte)</span></h2>
+      <span class="entry-date">2026-07-11</span>
+    </summary>
+
+    <h3>Sintoma</h3>
+    <p><code>POST /biblia/importar/ara</code> devolvia sempre "iniciada", mas a versão
+    ficava presa em 1 livro (dados de exemplo), nunca progredia.</p>
+
+    <h3>Procedimento seguido</h3>
+    <ol>
+      <li>Logs da Container App filtrados por "falhou" → <code>Midvash API erro 403 em /versions/ara</code>, corpo da resposta era uma página de desafio Cloudflare ("Just a moment...").</li>
+      <li>Confirmado que o bloqueio acontecia logo no primeiro pedido (metadados da versão), não durante a importação livro-a-livro — ou seja, nunca chegava a importar nada.</li>
+      <li>Decisão: mudar a fonte de dados em vez de tentar contornar o bloqueio Cloudflare.</li>
+    </ol>
+
+    <h3>Causa raiz</h3>
+    <p>A Midvash API passou a exigir um desafio JS/Cloudflare que nem a Container App
+    nem a Cloud Shell conseguem resolver (não são um browser real).</p>
+
+    <h3>Ação</h3>
+    <p>Nova via de importação (<code>usfx-import.service.ts</code>) a partir de um
+    ficheiro USFX de domínio público (repositório <code>seven1m/open-bibles</code>),
+    com um único fetch em vez de um pedido por capítulo. Confirmado com 66/66 livros
+    importados sem falhas.</p>
+  </details>
+
+  </div>
+  <p class="no-results" id="sem-resultados">Nenhum erro corresponde à pesquisa.</p>
+
+  <div class="howto">
+    <h2>Procedimento geral quando a API/site falha</h2>
+    <ol>
+      <li>Testar a API diretamente: <code>GET https://biblia-production-api.victoriousplant-a5611e3c.westeurope.azurecontainerapps.io/api/v1/biblia/versoes</code>. Se devolver dados → o problema é pontual/rede, recarregar a página.</li>
+      <li>Ver logs: <code>az containerapp logs show --name biblia-production-api --resource-group rg-bibliaao --tail 300</code> (máximo 300 por chamada).</li>
+      <li>Ver saúde das réplicas: <code>az containerapp replica list --name biblia-production-api --resource-group rg-bibliaao -o table</code> — <code>CrashLoopBackOff</code> = está mesmo a cair.</li>
+      <li>Documentar aqui, com o mesmo formato das entradas acima, seja qual for o resultado.</li>
+    </ol>
+  </div>
+
+</div>
+
+<script>
+  (function () {
+    var input = document.getElementById('busca');
+    var contagem = document.getElementById('busca-contagem');
+    var semResultados = document.getElementById('sem-resultados');
+    var entradas = Array.prototype.slice.call(document.querySelectorAll('#entradas .entry'));
+    var estadoInicial = entradas.map(function (e) { return e.hasAttribute('open'); });
+
+    input.addEventListener('input', function () {
+      var termo = input.value.trim().toLowerCase();
+      var visiveis = 0;
+
+      entradas.forEach(function (entrada, i) {
+        if (!termo) {
+          entrada.classList.remove('no-match');
+          entrada.open = estadoInicial[i];
+          visiveis++;
+          return;
+        }
+        var corresponde = entrada.textContent.toLowerCase().indexOf(termo) !== -1;
+        entrada.classList.toggle('no-match', !corresponde);
+        if (corresponde) {
+          entrada.open = true;
+          visiveis++;
+        }
+      });
+
+      contagem.textContent = termo ? (visiveis + ' de ' + entradas.length) : '';
+      semResultados.classList.toggle('show', termo !== '' && visiveis === 0);
+    });
+  })();
+</script>
+</body>
+</html>

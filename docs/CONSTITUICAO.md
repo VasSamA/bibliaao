@@ -85,6 +85,56 @@ decisão de produto ou de arquitetura, do mais para o menos determinante:
 
 ---
 
+## O que Cremos sobre a Bíblia
+
+Esta é a razão de "Palavra First" vir em primeiro lugar na hierarquia
+acima — e a rubrica que a nossa comunidade reforça sempre que estuda as
+Escrituras. Não é uma lista de valores entre outras. É o alicerce de tudo
+o resto neste documento.
+
+**A Bíblia é Única.** Não é um livro entre livros religiosos, nem uma
+fonte de sabedoria entre outras. É a Palavra inspirada por Deus, distinta
+de qualquer outro texto.
+
+> "Toda a Escritura é divinamente inspirada..." (2 Timóteo 3:16)
+
+**A Bíblia é Clara.** Pode ser compreendida por qualquer pessoa sincera
+que a procura, com a ajuda do Espírito Santo — não é reservada a
+especialistas nem depende de uma autoridade externa para ser entendida.
+
+> "O preceito do Senhor é reto, e alegra o coração; o mandamento do
+> Senhor é puro, e alumia os olhos." (Salmo 19:8)
+
+**A Bíblia é Suficiente.** Contém tudo o que é necessário para a fé e a
+vida cristã. Nada precisa de lhe ser acrescentado; nada nela é
+dispensável.
+
+> "...para que o homem de Deus seja perfeito, e perfeitamente preparado
+> para toda boa obra." (2 Timóteo 3:17)
+
+**A Bíblia é Inerrante.** Nas suas palavras originais, é inteiramente
+verdadeira e livre de erro. Não se ajusta à cultura, à ciência ou à
+opinião — é a cultura, a ciência e a opinião que devem ser confrontadas
+por ela.
+
+> "As palavras do Senhor são palavras puras, como prata refinada em
+> fornalha de barro, purificada sete vezes." (Salmo 12:6)
+
+**A Bíblia é Autoridade Final.** Está acima de qualquer tradição,
+sentimento, tendência ou plataforma — incluindo o Bíblia.ao. Se algo
+nesta aplicação alguma vez contradisser a Escritura, é a aplicação que
+está errada.
+
+> "O céu e a terra passarão, mas as minhas palavras não hão de passar."
+> (Mateus 24:35)
+
+Consequência direta para a arquitetura: nenhuma funcionalidade — em
+especial a IA Bíblica (Princípio 10) — pode alguma vez colocar-se ao
+nível da Escritura, contradizê-la ou substituí-la pela sua própria
+autoridade.
+
+---
+
 ## Os 12 Princípios do Bíblia.ao
 
 Não são princípios de engenharia. São a Constituição do Bíblia.ao — a
