@@ -1,6 +1,6 @@
 # Biblia.ao — Handoff para Claude Code
 
-Última atualização: 2026-07-11
+Última atualização: 2026-08-14
 
 Este ficheiro existe para retomar o trabalho de deploy/infra sem perder o contexto
 acumulado numa longa sessão de debugging no Cowork. Lê isto primeiro.
@@ -231,6 +231,109 @@ push — esse job funciona. O job `deploy-api` no mesmo workflow **falha sempre*
   referências pela ordem certa de votos, e clicar num chip (ex. "Jó 38:4")
   navega corretamente para esse capítulo.
 
+## Redesign visual da Home (decidido em 2026-08-14, IMPLEMENTADO em 2026-08-14)
+
+**Estado: feito e verificado localmente** (claro/escuro, mobile/desktop, dados
+reais) — falta só `git push` + confirmar em produção depois do deploy
+automático. Resumo do que mudou, secção a secção do plano original abaixo:
+
+- `apps/web/tailwind.config.ts`: paleta trocada para os tons petróleo/gold da
+  proposta (`sacred-900 #0d2935`, `sacred-700 #113642`, `sacred-600 #1c4d59`,
+  `gold-600 #a97a3a`/`gold-500 #c58c43`/`gold-400 #d9a962`, `parchment-50
+  #fbfaf7`/`100 #f5f0e8`/`200 #ece3d3`), mantendo os mesmos nomes de token —
+  Navbar/Footer não precisaram de alterações. `fontFamily.serif/sans` passam a
+  apontar para `var(--font-display)`/`var(--font-sans)`.
+- `apps/web/app/layout.tsx`: `Cormorant_Garamond` (display) + `Manrope` (sans)
+  via `next/font/google`, `viewport.themeColor` atualizado para `#113642`.
+- `apps/web/app/page.tsx`: reescrita completa em Tailwind (sem copiar CSS à
+  mão da proposta) — Hero com gradiente radial + CTAs reais (`/biblia`,
+  `/registo`); Palavra do Dia ligada a `GET /devocionais/hoje` (usa
+  `verseReference`/`verseText` já existentes, sem endpoint novo), com
+  fallback "Ainda não há um devocional publicado para hoje." quando vazio;
+  grelha de livros com 6 livros curados (Génesis/Salmos/Provérbios/Mateus/
+  João/Romanos) filtrados contra `GET /biblia/:versao/livros` real (nunca
+  inventados — se um slug não existir, é simplesmente omitido); Estudos
+  ligados a `GET /estudos` (3 mais recentes); Plano de leitura ligado a
+  `GET /planos-leitura` (primeiro publicado) — **decisão sobre visitante sem
+  sessão**: como o token fica em `localStorage` (só no browser) e a home é
+  server component, não dá para saber se há sessão no servidor — por isso a
+  secção mostra sempre a descrição/duração reais do plano em destaque com CTA
+  para `/perfil`, sem barra de progresso inventada (a proposta tinha uma fixa
+  em "6%", removida por ser dado falso); Missão com o texto da proposta.
+  Todas as secções têm `dark:` e usam `sm:`/`lg:` do Tailwind em vez dos
+  breakpoints `900px`/`600px` da proposta.
+- Verificado: typecheck limpo; API real ligada (contagens de capítulos
+  corretas); estados vazios corretos para estudos/planos/devocional (a BD de
+  produção ainda não tem estudos/planos publicados — normal, não é bug);
+  claro e escuro confirmados via computed styles; mobile (375px) confirmado.
+
+O utilizador trouxe uma proposta de layout gerada noutra ferramenta (ChatGPT
+Sites/vinext) para comparação com a home actual, e decidiu avançar. Contexto e
+decisões abaixo — para retomar sem repetir a análise.
+
+**Onde está a proposta (referência de estilo, não faz parte do monorepo):**
+`C:\Users\vass_\Claude\Projects\BIBLIA.AO\Biblia-ao-codigo-fonte2\biblia-ao\`
+- `app/page.tsx` — composição/marcação das secções (hero, "Palavra do Dia" com
+  ilustração CSS, grelha de livros por tom de cor, lista de estudos em fundo
+  escuro, cartão de plano de leitura com progresso, secção de missão, footer).
+- `app/layout.tsx` — fontes `Cormorant_Garamond` (display) + `Manrope` (sans)
+  via `next/font/google`.
+- `app/globals.css` — ~15KB de CSS à mão com a paleta e todas as regras das
+  secções acima, incluindo breakpoints `900px`/`600px`.
+
+É um scaffold Cloudflare Sites/ChatGPT (`chatgpt-auth.ts`, `.openai/hosting.json`,
+`vinext`), sem Tailwind, sem dark mode, sem ligação a nenhuma API — conteúdo
+todo mock (livros fixos, data hardcoded `"Terça-feira, 11 de Agosto de 2026"`,
+progresso de plano fixo em `6%`) e navegação por âncoras (`#ler`, `#estudos`)
+em vez de rotas. **Não copiar ficheiros desta pasta para o monorepo** — usar
+só como referência visual e reescrever como componentes Tailwind.
+
+**Decisão do utilizador:** manter 100% da funcionalidade e arquitectura
+actuais (rotas reais, `apps/api`, dark mode, Navbar/Footer com os 10 links
+reais) e só reconstruir a **home** (`apps/web/app/page.tsx`) com a composição
+visual e a **paleta da proposta** (confirmado — adoptar petróleo/navy, não
+manter o azul-índigo `sacred` actual).
+
+**Paleta — de → para** (`apps/web/tailwind.config.ts`):
+- `sacred-700 #243a70` / `sacred-600 #2f4b91` / `sacred-900 #131f3d` → tons da
+  proposta: `--navy #0d2935` / `--ink #162c36` (definir a escala `sacred-*`
+  nova a partir destes, mantendo os mesmos nomes de token para não obrigar a
+  tocar em todas as classes já usadas em Navbar/Footer/páginas).
+- `gold-400 #d8b45f` / `gold-500 #c49a3b` / `gold-600 #a67e28` → aproximar de
+  `--gold #c58c43` da proposta.
+- `parchment-50/100/200` → aproximar de `--cream #f5f0e8` / `--paper #fbfaf7`.
+- Depois de mudar os hex no `tailwind.config.ts`, as classes existentes
+  (`sacred-*`, `gold-*`, `parchment-*`) propagam sozinhas — não devia ser
+  preciso tocar em Navbar.tsx/Footer.tsx. Confirmar contraste AA (texto sobre
+  fundo) em modo claro **e** escuro depois da troca, sobretudo no hero escuro.
+- Tipografia: trocar `fontFamily.serif`/`sans` no mesmo ficheiro para usar
+  Cormorant Garamond + Manrope via `next/font/google` no
+  `apps/web/app/layout.tsx` (seguir o padrão do `layout.tsx` de referência
+  acima), em vez do Georgia/system stack actual.
+
+**Plano de implementação sugerido (secção a secção, dados reais em vez de mock):**
+1. `tailwind.config.ts` — nova paleta + tipografia (ver acima).
+2. Hero — manter CTAs para `/biblia` e `/registo`, aplicar a composição visual
+   da proposta (gradiente, glows).
+3. "Palavra do Dia" — ligar a um endpoint real de versículo do dia; **confirmar
+   se já existe em `apps/api/src/modules/bible`** (não confirmado nesta
+   sessão) — se não existir, é preciso criá-lo antes.
+4. Grelha de livros — usar dados reais (`GET /biblia/versoes` ou equivalente),
+   não os 6 livros hardcoded da proposta.
+5. Estudos em destaque — ligar a `apps/api/src/modules/studies`.
+6. Plano de leitura — ligar a `apps/api/src/modules/reading-plans` (progresso
+   real do utilizador autenticado; decidir o que mostrar a um visitante sem
+   sessão — a proposta não previa este caso).
+7. Secção de missão/sobre — conteúdo estático, pode aproveitar quase
+   directamente o texto da proposta.
+8. Adicionar variantes `dark:` a todas as secções novas — a proposta não tem
+   modo escuro, o resto do site tem (`darkMode: 'class'` + `ThemeToggle`).
+9. Traduzir os breakpoints `900px`/`600px` do CSS de referência para
+   `sm:`/`md:`/`lg:` do Tailwind.
+10. Não copiar `app/chatgpt-auth.ts` nem `.openai/hosting.json` — específicos
+    do scaffold Cloudflare Sites, sem equivalente/necessidade neste stack
+    (Next.js + Azure).
+
 ## Pendências (por ordem de prioridade sugerida)
 
 1. ~~Confirmar conclusão da importação bíblica~~ — **FEITO (2026-07-11)**: versão
@@ -275,3 +378,5 @@ push — esse job funciona. O job `deploy-api` no mesmo workflow **falha sempre*
     para autorização de uso completo antes de importar.
 12. ~~UI no frontend para mostrar referências cruzadas~~ — **FEITO (2026-07-11)**,
     ver secção "Referências cruzadas" acima.
+13. ~~Redesign visual da home~~ — **FEITO (2026-08-14)**, ver secção "Redesign
+    visual da Home" acima. Falta só `git push` + confirmar em produção.

@@ -6,29 +6,30 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Paleta "espiritual" suave: pergaminho, azul profundo, dourado
+        // Paleta "petróleo" — redesign 2026-08-14 (ver HANDOFF.md), a partir de
+        // --navy/--ink/--gold/--cream/--paper da proposta de referência.
         parchment: {
-          50: '#fdfbf6',
-          100: '#f9f4e9',
-          200: '#f0e6cf',
+          50: '#fbfaf7',
+          100: '#f5f0e8',
+          200: '#ece3d3',
         },
         sacred: {
-          50: '#eef4ff',
-          100: '#d9e6ff',
-          400: '#5b7fd6',
-          600: '#2f4b91',
-          700: '#243a70',
-          900: '#131f3d',
+          50: '#eef4f4',
+          100: '#d7e4e4',
+          400: '#4f747d',
+          600: '#1c4d59',
+          700: '#113642',
+          900: '#0d2935',
         },
         gold: {
-          400: '#d8b45f',
-          500: '#c49a3b',
-          600: '#a67e28',
+          400: '#d9a962',
+          500: '#c58c43',
+          600: '#a97a3a',
         },
       },
       fontFamily: {
-        serif: ['Georgia', 'Cambria', 'Times New Roman', 'serif'],
-        sans: ['-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+        serif: ['var(--font-display)', 'Georgia', 'Cambria', 'Times New Roman', 'serif'],
+        sans: ['var(--font-sans)', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
       },
     },
   },
