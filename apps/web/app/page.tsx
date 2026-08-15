@@ -138,8 +138,24 @@ export default async function HomePage() {
           </h1>
           <p className="mx-auto mt-7 max-w-xl text-base leading-relaxed text-white/70">
             Uma plataforma bíblica feita em Angola, para todos. Descubra as Escrituras, aprofunde a sua fé
-            e caminhe com propósito — todos os dias.
+            e caminhe com propósito - todos os dias.
           </p>
+          <form action="/pesquisa" className="mx-auto mt-8 flex max-w-lg items-center gap-2 rounded-full bg-white/10 p-1.5 pl-5 backdrop-blur-sm ring-1 ring-white/20">
+            <span aria-hidden className="text-white/50">⌕</span>
+            <label htmlFor="bible-search" className="sr-only">Pesquisar na Bíblia</label>
+            <input
+              id="bible-search"
+              name="q"
+              placeholder="Pesquise um livro, capítulo ou tema..."
+              className="flex-1 bg-transparent py-2.5 text-sm text-white placeholder:text-white/45 focus:outline-none"
+            />
+            <button
+              type="submit"
+              className="rounded-full bg-gold-500 px-5 py-2.5 text-xs font-semibold text-sacred-900 transition-colors hover:bg-gold-400"
+            >
+              Pesquisar
+            </button>
+          </form>
           <div className="mt-9 flex flex-wrap justify-center gap-4">
             <Link
               href="/biblia"
@@ -308,7 +324,7 @@ export default async function HomePage() {
               Toda a Bíblia, em ciclo.
             </h2>
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-sacred-600 dark:text-parchment-200">
-              Todos os dias avançamos um capítulo — de Génesis a Apocalipse — e recomeçamos ao terminar.
+              Todos os dias avançamos um capítulo - de Génesis a Apocalipse - e recomeçamos ao terminar.
               Sem inscrição, sem atraso: basta abrir e ler.
             </p>
             {plano && (
@@ -366,7 +382,7 @@ export default async function HomePage() {
           </h2>
           <p className="mx-auto mt-6 max-w-lg text-sm leading-relaxed text-white/85">
             O Bíblia.ao nasce para tornar a revelação de Deus acessível, compreensível e presente na vida
-            diária — de Angola para o mundo.
+            diária - de Angola para o mundo.
           </p>
           <Link href="/comunidade" className="mt-8 inline-flex rounded bg-white px-6 py-3 text-xs font-bold text-sacred-900">
             Conheça o projeto →

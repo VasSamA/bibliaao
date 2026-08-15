@@ -377,6 +377,38 @@ manter o azul-índigo `sacred` actual).
   BD) — ficam disponíveis para o padrão diferente de planos autoguiados
   (ex.: "Romanos em 16 dias") que o utilizador pode querer criar mais tarde.
 
+## Barra de pesquisa no Hero + página /pesquisa (2026-08-15)
+
+**Estado: implementado e verificado localmente, a aguardar `git push`.**
+
+O utilizador reparou que a proposta original (`Biblia-ao-codigo-fonte2/biblia-ao/app/page.tsx`,
+linhas 61-66) tinha uma barra de pesquisa no Hero que se perdeu na reescrita
+do redesign — confirmado e corrigido:
+
+- `apps/web/app/page.tsx`: formulário `GET /pesquisa` adicionado ao Hero
+  (`action="/pesquisa"`, `name="q"`), estilizado para a paleta petróleo/gold
+  (sem JS — funciona como navegação normal do browser).
+- `apps/web/app/pesquisa/page.tsx` (novo): página de resultados, liga a
+  `GET /pesquisa?q=` (endpoint já existente em
+  `apps/api/src/modules/search`, nunca tinha frontend). Agrupa por
+  Versículos/Estudos/Artigos/Recursos/Igrejas. **Só existem páginas de
+  detalhe reais para versículos (`/biblia/:versao/:livro/:capitulo`) e
+  estudos (`/estudos/:slug`)** — por isso só esses dois tipos de resultado
+  são clicáveis; Artigos/Igrejas mostram-se como texto simples com um link
+  para a secção geral (`/blog`, `/mapa-igrejas`, que existem mas sem página
+  de detalhe por item); Recursos linkam directamente a `resource.fileUrl`
+  (campo real da BD, é um ficheiro descarregável, não uma rota inventada).
+- `apps/api/src/modules/search/search.service.ts`: a pesquisa de versículos
+  passou a incluir a relação `chapter → book → version` (antes só devolvia
+  `bibleVerse` sem contexto), para o frontend conseguir montar o link direto
+  ao capítulo. **Importante**: como o deploy da API é manual (ver secção
+  "Ciclo de deploy da API" acima — o job `deploy-api` do GitHub Actions
+  falha sempre), este `include` só passa a valer em produção depois de correr
+  os passos manuais `az acr build` + `az containerapp update`. Até lá, a API
+  de produção devolve versículos sem `chapter`, e o frontend foi feito para
+  lidar bem com isso (renderiza o versículo sem link em vez de rebentar —
+  testado localmente contra a API de produção tal como está agora).
+
 ## Pendências (por ordem de prioridade sugerida)
 
 1. ~~Confirmar conclusão da importação bíblica~~ — **FEITO (2026-07-11)**: versão

@@ -38,7 +38,7 @@ export function Footer() {
         </div>
       </div>
       <p className="text-center text-xs text-sacred-500 dark:text-parchment-200 pb-6">
-        © {new Date().getFullYear()} Biblia.ao — Ministério GCI. Feito com fé, para a glória de Deus.
+        © {new Date().getFullYear()} Biblia.ao - Ministério GCI. Feito com fé, para a glória de Deus.
       </p>
     </footer>
   );

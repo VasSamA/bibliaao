@@ -17,7 +17,11 @@ export class SearchService {
     const q = { contains: query, mode: 'insensitive' as const };
 
     const [verses, studies, articles, resources, churches] = await Promise.all([
-      this.prisma.bibleVerse.findMany({ where: { text: q }, take: 10 }),
+      this.prisma.bibleVerse.findMany({
+        where: { text: q },
+        take: 10,
+        include: { chapter: { include: { book: { include: { version: true } } } } },
+      }),
       this.prisma.study.findMany({ where: { status: 'PUBLICADO', OR: [{ title: q }, { summary: q }] }, take: 10 }),
       this.prisma.article.findMany({ where: { status: 'PUBLICADO', OR: [{ title: q }, { excerpt: q }] }, take: 10 }),
       this.prisma.resource.findMany({ where: { status: 'PUBLICADO', title: q }, take: 10 }),
