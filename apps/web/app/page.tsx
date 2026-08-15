@@ -12,6 +12,39 @@ const API_URL = process.env.API_URL ?? 'http://localhost:4000/api/v1';
 const LIVROS_DESTAQUE_SLUGS = ['genesis', 'salmos', 'proverbios', 'mateus', 'joao', 'romanos'];
 const TONS_LIVRO = ['#8a7256', '#1c4d59', '#a97a3a', '#4f7a6a', '#0d2935', '#8b5942'];
 
+// Leitura contínua: avança um capítulo por dia, de Génesis a Apocalipse, e
+// recomeça ao terminar. Âncora real e verificável: 15 de agosto de 2026 = Salmos 8.
+const LEITURA_ANCORA_DATA = Date.UTC(2026, 7, 15);
+const LEITURA_ANCORA_LIVRO = 'salmos';
+const LEITURA_ANCORA_CAPITULO = 8;
+
+function getLeituraDoDia(todos: Livro[], hoje: Date): { livro: Livro; capitulo: number } | null {
+  const totalCapitulos = todos.reduce((soma, l) => soma + l.chaptersCount, 0);
+  if (totalCapitulos === 0) return null;
+
+  let posicaoAncora = 0;
+  let encontrouAncora = false;
+  for (const livro of todos) {
+    if (livro.slug === LEITURA_ANCORA_LIVRO) {
+      posicaoAncora += LEITURA_ANCORA_CAPITULO - 1;
+      encontrouAncora = true;
+      break;
+    }
+    posicaoAncora += livro.chaptersCount;
+  }
+  if (!encontrouAncora) return null;
+
+  const hojeUTC = Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), hoje.getUTCDate());
+  const diasDesdeAncora = Math.round((hojeUTC - LEITURA_ANCORA_DATA) / 86400000);
+
+  let posicao = ((posicaoAncora + diasDesdeAncora) % totalCapitulos + totalCapitulos) % totalCapitulos;
+  for (const livro of todos) {
+    if (posicao < livro.chaptersCount) return { livro, capitulo: posicao + 1 };
+    posicao -= livro.chaptersCount;
+  }
+  return null;
+}
+
 async function getVersaoPadrao(): Promise<string | null> {
   try {
     const res = await fetch(`${API_URL}/biblia/versoes`, { cache: 'no-store' });
@@ -23,19 +56,19 @@ async function getVersaoPadrao(): Promise<string | null> {
   }
 }
 
-async function getLivrosDestaque(): Promise<{ versao: string; livros: Livro[] }> {
+async function getLivrosDestaque(): Promise<{ versao: string; todos: Livro[]; destaque: Livro[] }> {
   const versao = await getVersaoPadrao();
-  if (!versao) return { versao: '', livros: [] };
+  if (!versao) return { versao: '', todos: [], destaque: [] };
   try {
     const res = await fetch(`${API_URL}/biblia/${versao}/livros`, { cache: 'no-store' });
-    if (!res.ok) return { versao, livros: [] };
+    if (!res.ok) return { versao, todos: [], destaque: [] };
     const todos: Livro[] = await res.json();
     const destaque = LIVROS_DESTAQUE_SLUGS.map((slug) => todos.find((l) => l.slug === slug)).filter(
       (l): l is Livro => Boolean(l),
     );
-    return { versao, livros: destaque.length > 0 ? destaque : todos.slice(0, 6) };
+    return { versao, todos, destaque: destaque.length > 0 ? destaque : todos.slice(0, 6) };
   } catch {
-    return { versao, livros: [] };
+    return { versao, todos: [], destaque: [] };
   }
 }
 
@@ -72,12 +105,14 @@ async function getPlanoDestaque(): Promise<Plano | null> {
 }
 
 export default async function HomePage() {
-  const [{ versao, livros }, devocional, estudos, plano] = await Promise.all([
+  const [{ versao, todos, destaque }, devocional, estudos, plano] = await Promise.all([
     getLivrosDestaque(),
     getDevocionalHoje(),
     getEstudosDestaque(),
     getPlanoDestaque(),
   ]);
+  const livros = destaque;
+  const leituraHoje = getLeituraDoDia(todos, new Date());
 
   return (
     <div>
@@ -262,38 +297,51 @@ export default async function HomePage() {
 
       {/* Plano de leitura */}
       <section className="mx-auto max-w-6xl px-4 py-28">
-        {plano ? (
-          <div className="grid overflow-hidden rounded-lg bg-parchment-100 dark:bg-sacred-700 sm:grid-cols-2">
-            <div className="p-10 sm:p-16">
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-gold-600 dark:text-gold-400">
-                Planos de leitura
-              </p>
-              <h2 className="mt-3 font-serif text-4xl font-semibold text-sacred-900 dark:text-parchment-50">
-                Pequenos passos.
-                <br />
-                Uma fé mais profunda.
-              </h2>
-              <p className="mt-4 max-w-sm text-sm leading-relaxed text-sacred-600 dark:text-parchment-200">
-                {plano.description}
-              </p>
+        <div className="grid overflow-hidden rounded-lg bg-parchment-100 dark:bg-sacred-700 sm:grid-cols-2">
+          <div className="p-10 sm:p-16">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-gold-600 dark:text-gold-400">
+              Plano de leitura contínuo
+            </p>
+            <h2 className="mt-3 font-serif text-4xl font-semibold text-sacred-900 dark:text-parchment-50">
+              Um capítulo por dia.
+              <br />
+              Toda a Bíblia, em ciclo.
+            </h2>
+            <p className="mt-4 max-w-sm text-sm leading-relaxed text-sacred-600 dark:text-parchment-200">
+              Todos os dias avançamos um capítulo — de Génesis a Apocalipse — e recomeçamos ao terminar.
+              Sem inscrição, sem atraso: basta abrir e ler.
+            </p>
+            {plano && (
               <Link
                 href="/perfil"
                 className="mt-6 inline-flex rounded bg-sacred-700 px-5 py-3 text-xs font-bold text-white hover:bg-sacred-600 dark:bg-gold-500 dark:text-sacred-900 dark:hover:bg-gold-400"
               >
-                Começar este plano →
+                Ver planos guiados →
               </Link>
-            </div>
-            <div className="m-6 rounded-md bg-gradient-to-br from-sacred-700 to-sacred-900 p-10 text-white sm:m-12">
-              <p className="text-[10px] font-bold uppercase tracking-[0.17em] text-gold-400">Plano em destaque</p>
-              <h3 className="mt-3 text-2xl font-semibold">{plano.title}</h3>
-              <p className="mt-3 text-xs text-white/60">{plano.durationDays} dias de leitura guiada</p>
-            </div>
+            )}
           </div>
-        ) : (
-          <p className="text-center text-sacred-400 dark:text-parchment-200">
-            Ainda não há planos de leitura publicados.
-          </p>
-        )}
+          <div className="m-6 rounded-md bg-gradient-to-br from-sacred-700 to-sacred-900 p-10 text-white sm:m-12">
+            {leituraHoje ? (
+              <>
+                <p className="text-[10px] font-bold uppercase tracking-[0.17em] text-gold-400">Leitura de hoje</p>
+                <h3 className="mt-3 font-serif text-4xl font-semibold">
+                  {leituraHoje.livro.name} {leituraHoje.capitulo}
+                </h3>
+                <p className="mt-3 text-xs capitalize text-white/60">
+                  {new Date().toLocaleDateString('pt-PT', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </p>
+                <Link
+                  href={`/biblia/${versao}/${leituraHoje.livro.slug}/${leituraHoje.capitulo}`}
+                  className="mt-6 inline-flex rounded bg-gold-500 px-5 py-3 text-xs font-bold text-sacred-900 hover:bg-gold-400"
+                >
+                  Ler {leituraHoje.livro.name} {leituraHoje.capitulo} →
+                </Link>
+              </>
+            ) : (
+              <p className="text-sm text-white/60">A leitura de hoje estará disponível em breve.</p>
+            )}
+          </div>
+        </div>
       </section>
 
       {/* Missão */}

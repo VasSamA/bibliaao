@@ -233,9 +233,8 @@ push — esse job funciona. O job `deploy-api` no mesmo workflow **falha sempre*
 
 ## Redesign visual da Home (decidido em 2026-08-14, IMPLEMENTADO em 2026-08-14)
 
-**Estado: feito e verificado localmente** (claro/escuro, mobile/desktop, dados
-reais) — falta só `git push` + confirmar em produção depois do deploy
-automático. Resumo do que mudou, secção a secção do plano original abaixo:
+**Estado: feito, publicado (`3b8982d`) e confirmado em produção.** Resumo do
+que mudou, secção a secção do plano original abaixo:
 
 - `apps/web/tailwind.config.ts`: paleta trocada para os tons petróleo/gold da
   proposta (`sacred-900 #0d2935`, `sacred-700 #113642`, `sacred-600 #1c4d59`,
@@ -333,6 +332,50 @@ manter o azul-índigo `sacred` actual).
 10. Não copiar `app/chatgpt-auth.ts` nem `.openai/hosting.json` — específicos
     do scaffold Cloudflare Sites, sem equivalente/necessidade neste stack
     (Next.js + Azure).
+
+## Leitura contínua na Home + copyright no rodapé (2026-08-15)
+
+**Estado: implementado e verificado localmente (dados reais de produção via
+`API_URL`), a aguardar `git push` + confirmação em produção.**
+
+- `apps/web/components/Footer.tsx`: rodapé passa a incluir
+  "Ministério GCI" na linha de copyright.
+- `apps/web/app/page.tsx`: a secção "Plano de leitura" da home deixou de
+  depender de haver um `ReadingPlan` publicado na BD (que ainda não existe) e
+  passou a mostrar **"Leitura de hoje"** — um capítulo calculado, não
+  guardado por dia. Pedido do utilizador: "hoje são 15 de agosto de 2026 e a
+  leitura é de Salmos 8; amanhã será 9, depois 10... é uma sequência em loop
+  nos capítulos da Bíblia" — ou seja, **não é um plano anual curado de 365
+  linhas**, é uma fórmula: capítulo-âncora + dias decorridos, em ciclo pelos
+  1189 capítulos do cânone (Génesis 1 → Apocalipse 22 → recomeça em Génesis
+  1). Implementado em `getLeituraDoDia()`:
+  - Âncora fixa no código: `15/08/2026 = Salmos 8` (verificável, é o dado que
+    o utilizador deu).
+  - `GET /biblia/:versao/livros` já devolve os 66 livros ordenados por
+    `order` (canónico) com `chaptersCount` real — a função soma esses
+    capítulos para achar a posição do dia âncora, soma `diasDesdeAncora`,
+    aplica módulo ao total de capítulos e percorre a lista para resolver
+    (livro, capítulo).
+  - `getLivrosDestaque()` passou a devolver `{ versao, todos, destaque }` em
+    vez de só os 6 livros curados, para a home ter a lista completa
+    disponível a este cálculo sem um pedido extra à API.
+  - Testado: hoje mostra "Salmos 8" com link `/biblia/JFA/salmos/8` que abre
+    o capítulo real; matemática confirmada a incrementar corretamente
+    (ontem=7, amanhã=9) e a transitar corretamente para o livro seguinte ao
+    passar do capítulo 150 de Salmos.
+  - **Limitação conhecida (aceite pelo utilizador)**: "hoje" usa o relógio do
+    servidor (mesmo padrão de `devotionals.service.ts`), não o fuso horário
+    de cada leitor — o utilizador perguntou sobre um automatismo por fuso
+    local e decidiu que não é necessário agora, só precisa que "leitura de
+    hoje, Salmos 8" apareça como lembrete.
+- `apps/api/src/modules/reading-plans/`: adicionados `dto/upsert-reading-plan.dto.ts`,
+  `dto/upsert-reading-plan-day.dto.ts`, e em `reading-plans.service.ts` +
+  `reading-plans.controller.ts` os métodos/rotas `create` (`POST
+  /planos-leitura`), `update` (`PATCH /planos-leitura/:id`) e `upsertDay`
+  (`PUT /planos-leitura/:id/dias/:dayNumber`), todos `@Roles(...EDITORES)`.
+  Não são usados pelo cálculo de "leitura de hoje" acima (que não depende de
+  BD) — ficam disponíveis para o padrão diferente de planos autoguiados
+  (ex.: "Romanos em 16 dias") que o utilizador pode querer criar mais tarde.
 
 ## Pendências (por ordem de prioridade sugerida)
 

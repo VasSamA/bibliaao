@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ContentStatus } from '@prisma/client';
+import { UpsertReadingPlanDto } from './dto/upsert-reading-plan.dto';
+import { UpsertReadingPlanDayDto } from './dto/upsert-reading-plan-day.dto';
 
 @Injectable()
 export class ReadingPlansService {
@@ -8,6 +10,31 @@ export class ReadingPlansService {
 
   findPublished() {
     return this.prisma.readingPlan.findMany({ where: { status: ContentStatus.PUBLICADO } });
+  }
+
+  create(dto: UpsertReadingPlanDto) {
+    return this.prisma.readingPlan.create({
+      data: { ...dto, status: (dto.status as ContentStatus) ?? ContentStatus.RASCUNHO },
+    });
+  }
+
+  async update(id: string, dto: Partial<UpsertReadingPlanDto>) {
+    const plan = await this.prisma.readingPlan.findUnique({ where: { id } });
+    if (!plan) throw new NotFoundException('Plano de leitura não encontrado.');
+    return this.prisma.readingPlan.update({
+      where: { id },
+      data: { ...dto, status: dto.status as ContentStatus | undefined },
+    });
+  }
+
+  async upsertDay(planId: string, dayNumber: number, dto: UpsertReadingPlanDayDto) {
+    const plan = await this.prisma.readingPlan.findUnique({ where: { id: planId } });
+    if (!plan) throw new NotFoundException('Plano de leitura não encontrado.');
+    return this.prisma.readingPlanDay.upsert({
+      where: { planId_dayNumber: { planId, dayNumber } },
+      update: dto,
+      create: { planId, dayNumber, ...dto },
+    });
   }
 
   async findBySlug(slug: string) {
