@@ -14,7 +14,7 @@ export function Footer() {
           <p className="font-medium mb-2">Explorar</p>
           <ul className="space-y-1">
             <li><Link href="/biblia">Bíblia Online</Link></li>
-            <li><Link href="/estudos">Estudos Bíblicos</Link></li>
+            <li><Link href="/estudos">Estudos e Reflexões</Link></li>
             <li><Link href="/devocional">Devocional Diário</Link></li>
             <li><Link href="/academia">Academia Bíblica</Link></li>
           </ul>

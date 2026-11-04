@@ -13,18 +13,26 @@ const config: Config = {
           100: '#f5f0e8',
           200: '#ece3d3',
         },
+        // Os tons 200/300/500/800 existiam antes do redesign e continuam a ser
+        // usados em várias páginas; sem eles essas classes não geravam CSS.
         sacred: {
           50: '#eef4f4',
           100: '#d7e4e4',
+          200: '#aabfc2',
+          300: '#7c9aa0',
           400: '#4f747d',
+          500: '#356069',
           600: '#1c4d59',
           700: '#113642',
+          800: '#0f303c',
           900: '#0d2935',
         },
         gold: {
           400: '#d9a962',
           500: '#c58c43',
           600: '#a97a3a',
+          // Texto pequeno sobre fundo claro (contraste AA, 5.4:1).
+          700: '#8a6226',
         },
       },
       fontFamily: {

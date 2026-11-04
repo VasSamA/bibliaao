@@ -5,7 +5,7 @@ import { ThemeToggle } from './ThemeToggle';
 const LINKS = [
   { href: '/biblia', label: 'Bíblia' },
   { href: '/devocional', label: 'Devocional' },
-  { href: '/estudos', label: 'Estudos' },
+  { href: '/estudos', label: 'Estudos e Reflexões' },
   { href: '/academia', label: 'Academia' },
   { href: '/pergunte-a-biblia', label: 'Pergunte à Bíblia' },
   { href: '/recursos', label: 'Recursos' },
@@ -24,9 +24,9 @@ export function Navbar() {
           Biblia<span className="text-gold-500">.ao</span>
         </Link>
 
-        <nav className="hidden lg:flex items-center gap-5 text-sm">
+        <nav className="hidden lg:flex items-center gap-2 xl:gap-5 text-[13px] xl:text-sm">
           {LINKS.map((l) => (
-            <Link key={l.href} href={l.href} className="hover:text-gold-600 dark:hover:text-gold-400 transition-colors">
+            <Link key={l.href} href={l.href} className="whitespace-nowrap hover:text-gold-600 dark:hover:text-gold-400 transition-colors">
               {l.label}
             </Link>
           ))}

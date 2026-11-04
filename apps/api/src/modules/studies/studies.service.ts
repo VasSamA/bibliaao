@@ -7,19 +7,28 @@ import { UpsertStudyDto } from './dto/upsert-study.dto';
 export class StudiesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findPublished(params: { page?: number; pageSize?: number; category?: string }) {
+  findPublished(params: { page?: number; pageSize?: number; category?: string; tag?: string }) {
     const page = params.page ?? 1;
     const pageSize = params.pageSize ?? 12;
     return this.prisma.study.findMany({
-      where: { status: ContentStatus.PUBLICADO, category: params.category },
+      where: {
+        status: ContentStatus.PUBLICADO,
+        category: params.category,
+        tags: params.tag ? { has: params.tag } : undefined,
+      },
       orderBy: { publishedAt: 'desc' },
       skip: (page - 1) * pageSize,
       take: pageSize,
     });
   }
 
+  // Rota pública: rascunhos, estudos em revisão e arquivados respondem 404,
+  // tal como se não existissem, para não vazarem por endereço directo.
   async findBySlug(slug: string) {
-    const study = await this.prisma.study.findUnique({ where: { slug }, include: { author: { select: { name: true } } } });
+    const study = await this.prisma.study.findFirst({
+      where: { slug, status: ContentStatus.PUBLICADO },
+      include: { author: { select: { name: true } } },
+    });
     if (!study) throw new NotFoundException('Estudo não encontrado.');
     return study;
   }

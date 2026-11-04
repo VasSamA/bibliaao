@@ -46,14 +46,14 @@ export default async function PesquisaPage({ searchParams }: { searchParams: { q
         action="/pesquisa"
         className="mb-10 flex items-center gap-2 rounded-full border border-sacred-100 bg-white p-1.5 pl-5 dark:border-sacred-700 dark:bg-sacred-800"
       >
-        <span aria-hidden className="text-sacred-400 dark:text-parchment-300">⌕</span>
+        <span aria-hidden className="text-sacred-400 dark:text-parchment-200">⌕</span>
         <label htmlFor="q" className="sr-only">Pesquisar na Bíblia</label>
         <input
           id="q"
           name="q"
           defaultValue={q}
           placeholder="Pesquise um livro, capítulo ou tema..."
-          className="flex-1 bg-transparent py-2.5 text-sm text-sacred-900 placeholder:text-sacred-300 focus:outline-none dark:text-parchment-50 dark:placeholder:text-parchment-300"
+          className="flex-1 bg-transparent py-2.5 text-sm text-sacred-900 placeholder:text-sacred-400 focus:outline-none dark:text-parchment-50 dark:placeholder:text-parchment-200"
         />
         <button
           type="submit"
@@ -73,7 +73,7 @@ export default async function PesquisaPage({ searchParams }: { searchParams: { q
         <div className="space-y-12">
           {resultados.verses.length > 0 && (
             <section>
-              <h2 className="mb-4 text-xs font-bold uppercase tracking-[0.2em] text-gold-600 dark:text-gold-400">
+              <h2 className="mb-4 text-xs font-bold uppercase tracking-[0.2em] text-gold-700 dark:text-gold-400">
                 Versículos
               </h2>
               <div className="space-y-3">
@@ -85,12 +85,12 @@ export default async function PesquisaPage({ searchParams }: { searchParams: { q
                       className="block rounded-lg border border-sacred-100 p-4 hover:border-gold-400 dark:border-sacred-700"
                     >
                       <p className="text-sm text-sacred-700 dark:text-parchment-100">{v.text}</p>
-                      <p className="mt-2 text-xs font-bold text-gold-600 dark:text-gold-400">{v.reference}</p>
+                      <p className="mt-2 text-xs font-bold text-gold-700 dark:text-gold-400">{v.reference}</p>
                     </Link>
                   ) : (
                     <div key={v.id} className="rounded-lg border border-sacred-100 p-4 dark:border-sacred-700">
                       <p className="text-sm text-sacred-700 dark:text-parchment-100">{v.text}</p>
-                      <p className="mt-2 text-xs font-bold text-gold-600 dark:text-gold-400">{v.reference}</p>
+                      <p className="mt-2 text-xs font-bold text-gold-700 dark:text-gold-400">{v.reference}</p>
                     </div>
                   ),
                 )}
@@ -100,7 +100,7 @@ export default async function PesquisaPage({ searchParams }: { searchParams: { q
 
           {resultados.studies.length > 0 && (
             <section>
-              <h2 className="mb-4 text-xs font-bold uppercase tracking-[0.2em] text-gold-600 dark:text-gold-400">
+              <h2 className="mb-4 text-xs font-bold uppercase tracking-[0.2em] text-gold-700 dark:text-gold-400">
                 Estudos
               </h2>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -123,7 +123,7 @@ export default async function PesquisaPage({ searchParams }: { searchParams: { q
           {resultados.articles.length > 0 && (
             <section>
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gold-600 dark:text-gold-400">
+                <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gold-700 dark:text-gold-400">
                   Artigos
                 </h2>
                 <Link
@@ -148,7 +148,7 @@ export default async function PesquisaPage({ searchParams }: { searchParams: { q
 
           {resultados.resources.length > 0 && (
             <section>
-              <h2 className="mb-4 text-xs font-bold uppercase tracking-[0.2em] text-gold-600 dark:text-gold-400">
+              <h2 className="mb-4 text-xs font-bold uppercase tracking-[0.2em] text-gold-700 dark:text-gold-400">
                 Recursos
               </h2>
               <div className="space-y-3">
@@ -166,7 +166,7 @@ export default async function PesquisaPage({ searchParams }: { searchParams: { q
                     {r.description && (
                       <p className="mt-1 text-sm text-sacred-600 dark:text-parchment-200">{r.description}</p>
                     )}
-                    <p className="mt-2 text-xs font-bold text-gold-600 dark:text-gold-400">Descarregar →</p>
+                    <p className="mt-2 text-xs font-bold text-gold-700 dark:text-gold-400">Descarregar →</p>
                   </a>
                 ))}
               </div>
@@ -176,7 +176,7 @@ export default async function PesquisaPage({ searchParams }: { searchParams: { q
           {resultados.churches.length > 0 && (
             <section>
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gold-600 dark:text-gold-400">
+                <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gold-700 dark:text-gold-400">
                   Igrejas
                 </h2>
                 <Link

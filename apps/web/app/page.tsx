@@ -277,9 +277,16 @@ export default async function HomePage() {
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-gold-400">Conheça para viver</p>
               <h2 className="mt-2 font-serif text-4xl font-semibold sm:text-5xl">Estudos que aprofundam.</h2>
             </div>
-            <p className="max-w-xs text-xs leading-relaxed text-white/50">
-              Conteúdo bíblico claro, fiel às Escrituras e conectado à vida real.
-            </p>
+            <div className="max-w-xs">
+              <p className="text-xs leading-relaxed text-white/50">
+                Conteúdo bíblico claro, fiel às Escrituras e conectado à vida real.
+              </p>
+              {estudos.length > 0 && (
+                <Link href="/estudos" className="mt-3 inline-block text-xs font-bold text-gold-400 hover:text-gold-500">
+                  Ver Estudos e Reflexões →
+                </Link>
+              )}
+            </div>
           </div>
           {estudos.length > 0 ? (
             <div className="divide-y divide-white/10 border-t border-white/10">

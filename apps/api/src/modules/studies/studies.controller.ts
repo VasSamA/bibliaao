@@ -16,8 +16,8 @@ export class StudiesController {
 
   @Public()
   @Get()
-  findAll(@Query('page') page?: string, @Query('category') category?: string) {
-    return this.studiesService.findPublished({ page: page ? Number(page) : undefined, category });
+  findAll(@Query('page') page?: string, @Query('category') category?: string, @Query('tag') tag?: string) {
+    return this.studiesService.findPublished({ page: page ? Number(page) : undefined, category, tag });
   }
 
   @Roles(...EDITORES)

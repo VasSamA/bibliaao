@@ -409,6 +409,65 @@ do redesign — confirmado e corrigido:
   lidar bem com isso (renderiza o versículo sem link em vez de rebentar —
   testado localmente contra a API de produção tal como está agora).
 
+## Estudos e Reflexões (2026-11-04)
+
+**Estado: implementado e verificado localmente; a aguardar `git push` e deploy
+manual da API (ver abaixo).** A área pública `/estudos` passa a chamar-se
+**Estudos e Reflexões** (mesmo endereço, sem secção duplicada) e mostra só
+conteúdo publicado.
+
+**Sem migração à BD**: o modelo `Study` não tem campos de série, formato,
+referências ou fontes, e o schema de produção só se altera à mão (`prisma db
+push`, sem pasta de migrações). Usou-se o que já existe:
+
+| Necessidade | Onde fica |
+|---|---|
+| Tema | `category` |
+| Série | tag `serie:<slug>` (só séries conhecidas em `apps/web/lib/estudos.ts`; hoje `a-grande-controversia`) |
+| Formato | tag `formato:artigo\|reflexao\|estudo\|video\|audio` (por omissão "Estudo") |
+| Referências bíblicas | secção `## Referências bíblicas` no `content`, uma por linha (`- Lucas 19:41-44`); ligadas ao leitor bíblico quando o livro existe, texto simples caso contrário |
+| Fontes de apoio, créditos | secções `## Fontes de apoio`, `## Créditos` |
+| Autoria e revisão | secção `## Autoria e revisão` (de propósito **não** se usa `author.name`: é a conta que criou o registo, p. ex. o admin, e não é necessariamente o autor real) |
+
+O corpo aceita `##`/`###`, listas `- `, citações `> ` (texto bíblico) e
+`**negrito**`/`*itálico*`; nunca interpreta HTML.
+
+**Ficheiros**: `apps/web/lib/estudos.ts` (dados e convenções),
+`apps/web/app/estudos/page.tsx` (listagem, filtros `?tema=` e `?serie=`),
+`apps/web/app/estudos/[slug]/page.tsx` (conteúdo, metadados de partilha só para
+publicados), `components/ConteudoEstudo.tsx`, `components/ShareButton.tsx`,
+Navbar/Footer (rótulo), link na secção de estudos da home.
+
+**Correção de segurança (API)**: `GET /estudos/:slug` era público e devolvia
+qualquer estudo, **incluindo rascunhos**. Agora só devolve `PUBLICADO` (404 nos
+restantes). Pesquisa, IA e analytics já filtravam por `PUBLICADO`. A web também
+devolve 404 se a API disser que o estado não é `PUBLICADO` (defesa em
+profundidade), mas **a fuga na própria API só fecha depois do deploy manual da
+API** (secção "Ciclo de deploy da API"). Até lá, **não criar rascunhos reais
+em produção**. O mesmo deploy ativa o filtro `?tag=` em `GET /estudos` e o
+`include` de capítulo nos versículos da pesquisa (ver secção anterior).
+
+**Também corrigido**: o redesign de agosto definiu a paleta com poucos tons e
+várias classes antigas (`sacred-200/300/500/800`) deixaram de gerar CSS em
+dezenas de ecrãs (p. ex. fundos `dark:bg-sacred-800`). Acrescentados esses tons
+a `tailwind.config.ts` (só adiciona), mais `gold-700` para texto pequeno sobre
+fundo claro (AA). A caixa de `/pesquisa` estava ilegível em modo escuro por
+isto. Nota: `.next/` pode precisar de ser apagado para o dev server apanhar
+alterações ao `tailwind.config.ts`.
+
+**Criar, rever e publicar um conteúdo** (sem painel admin novo): autenticar como
+editor, `POST /estudos` com `status: "RASCUNHO"` e os campos acima; após revisão
+humana, `PATCH /estudos/:id/publicar` (perfil MODERADOR ou superior) define
+`PUBLICADO` e a data real de publicação. Sem estudos publicados a página mostra
+um estado vazio honesto.
+
+**Limitações / pendências**: sem campos de áudio/vídeo (nada é mostrado até
+existir um recurso válido); listagem limitada aos 12 mais recentes (a API
+pagina por `?page=`, a UI ainda não); o botão de menu da Navbar (`< lg`) **não
+tem ação** (pré-existente), por isso em telemóvel a navegação chega-se por
+rodapé e home; o contraste dos pequenos rótulos `gold-600` na home é ~3.6:1
+(abaixo de AA), tal como no desenho aprovado.
+
 ## Pendências (por ordem de prioridade sugerida)
 
 1. ~~Confirmar conclusão da importação bíblica~~ — **FEITO (2026-07-11)**: versão
