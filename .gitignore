@@ -9,3 +9,4 @@ out/
 coverage/
 apps/api/prisma/*.db
 .turbo/
+infra/azure/main.json

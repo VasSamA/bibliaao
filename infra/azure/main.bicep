@@ -1,53 +1,54 @@
 // ==========================================================
-// Biblia.ao — Provisionamento Azure (ponto de entrada)
-// Scope: subscription — cria o resource group e invoca o
-// módulo com os recursos.
+// Biblia.ao - Provisionamento Azure (ponto de entrada)
+// Scope: subscription - cria o resource group e invoca o módulo.
 //
-// Deploy:
-//   az login
-//   az account set --subscription <SUBSCRIPTION_ID>
-//   az deployment sub create \
-//     --location southafricanorth \
-//     --template-file infra/azure/main.bicep \
-//     --parameters infra/azure/main.parameters.json
+// Arquitectura da fase de desenvolvimento (Nov. 2026):
+//   - Base de dados: Neon (Postgres serverless, fora do Azure)
+//   - Imagem da API: GitHub Container Registry (ghcr.io)
+//   - API: Azure Container Apps (Consumption, escala até 0 réplicas)
+//   - Frontend: Azure Static Web Apps (plano Free)
+// Subscrição alvo: Religioso. Ver README.md desta pasta.
 // ==========================================================
 
 targetScope = 'subscription'
 
 @description('Nome do resource group da plataforma Biblia.ao')
-param resourceGroupName string = 'rg-biblia-ao'
+param resourceGroupName string = 'rg-bibliaao'
 
-@description('Região principal (recursos gerais: RG, Storage, PostgreSQL, Key Vault, App Insights). South Africa North tem 3 zonas de disponibilidade e é a região mais próxima de Angola.')
-param primaryLocation string = 'southafricanorth'
+@description('Região de todos os recursos. West Europe fica perto do Neon (Frankfurt) e suporta Container Apps e Static Web Apps.')
+param location string = 'westeurope'
 
-@description('Região para Azure Container Apps. Nem todos os serviços PaaS mais recentes estão disponíveis em todas as regiões — confirmar em https://azure.microsoft.com/explore/global-infrastructure/products-by-region/ antes do deploy. Por omissão usa-se West Europe por ter cobertura mais ampla; mudar para primaryLocation se/quando Container Apps estiver disponível em South Africa North.')
-param computeLocation string = 'westeurope'
-
-@description('Região para Azure OpenAI (Cognitive Services). Disponibilidade de modelos varia por região — confirmar antes do deploy.')
-param aiLocation string = 'westeurope'
-
-@description('Região para Azure Static Web Apps (conjunto de regiões restrito: eastus2, centralus, westus2, westeurope, eastasia).')
-param webLocation string = 'westeurope'
-
-@description('Ambiente: dev | staging | production')
+@description('Ambiente: dev | staging | production (usado nos nomes dos recursos)')
 @allowed(['dev', 'staging', 'production'])
 param environmentName string = 'production'
 
-@description('Senha do administrador do PostgreSQL Flexible Server — passar via parâmetro seguro ou Key Vault, nunca committar em texto simples.')
-@secure()
-param postgresAdminPassword string
+@description('Imagem da API, ex.: ghcr.io/vassama/biblia-ao-api:<sha>')
+param apiImage string
 
-@description('Chave de API da API.Bible — usada apenas para popular o Key Vault; a importação corre localmente ou num job.')
-@secure()
-param apiBibleKey string = ''
+@description('Utilizador do GitHub com acesso ao pacote no GHCR (vazio se o pacote for público).')
+param ghcrUsername string = ''
 
-@description('Chave de API da OpenAI (fallback caso não se use Azure OpenAI diretamente).')
+@description('Token do GitHub (PAT) com permissão read:packages (vazio se o pacote for público).')
 @secure()
-param openAiApiKey string = ''
+param ghcrToken string = ''
+
+@description('Connection string do Neon COM pooling (host com "-pooler").')
+@secure()
+param databaseUrl string
+
+@description('Connection string do Neon DIRECTA (sem pooler), usada pelo prisma migrate.')
+@secure()
+param directUrl string
+
+@description('Réplicas mínimas da API. 0 = não gasta computação sem pedidos.')
+param minReplicas int = 0
+
+@description('Réplicas máximas da API.')
+param maxReplicas int = 1
 
 resource rg 'Microsoft.Resources/resourceGroups@2024-03-01' = {
   name: resourceGroupName
-  location: primaryLocation
+  location: location
   tags: {
     projeto: 'biblia-ao'
     ambiente: environmentName
@@ -58,19 +59,20 @@ module resources 'resources.bicep' = {
   name: 'biblia-ao-resources'
   scope: rg
   params: {
-    primaryLocation: primaryLocation
-    computeLocation: computeLocation
-    aiLocation: aiLocation
-    webLocation: webLocation
+    location: location
     environmentName: environmentName
-    postgresAdminPassword: postgresAdminPassword
-    apiBibleKey: apiBibleKey
-    openAiApiKey: openAiApiKey
+    apiImage: apiImage
+    ghcrUsername: ghcrUsername
+    ghcrToken: ghcrToken
+    databaseUrl: databaseUrl
+    directUrl: directUrl
+    minReplicas: minReplicas
+    maxReplicas: maxReplicas
   }
 }
 
 output resourceGroupName string = rg.name
 output apiUrl string = resources.outputs.apiUrl
 output webUrl string = resources.outputs.webUrl
+output staticWebAppName string = resources.outputs.staticWebAppName
 output storageAccountName string = resources.outputs.storageAccountName
-output keyVaultName string = resources.outputs.keyVaultName

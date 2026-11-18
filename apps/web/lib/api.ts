@@ -5,6 +5,10 @@
  * a Azure Static Web Apps reserva esse prefixo para as suas próprias Azure
  * Functions e devolve 404 antes mesmo de chegar ao Next.js. Por isso o
  * browser chama a Container App diretamente (autorizado via CORS_ORIGINS).
+ *
+ * O endereço público da API vem de NEXT_PUBLIC_API_URL, definido no build
+ * (GitHub Actions, variável API_PUBLIC_URL). O valor abaixo é só um recurso
+ * de último caso para builds sem essa variável.
  */
 const PRODUCTION_API_URL =
   'https://biblia-production-api.victoriousplant-a5611e3c.westeurope.azurecontainerapps.io/api/v1';

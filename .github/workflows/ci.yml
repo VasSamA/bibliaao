@@ -35,6 +35,7 @@ jobs:
       - run: npx prisma migrate deploy
         env:
           DATABASE_URL: postgresql://biblia:biblia_ci_password@localhost:5432/biblia_ao_test
+          DIRECT_URL: postgresql://biblia:biblia_ci_password@localhost:5432/biblia_ao_test
       - run: npm run lint --if-present
       - run: npm run build
 

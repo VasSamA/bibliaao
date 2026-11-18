@@ -1,17 +1,25 @@
-name: Deploy Azure — Biblia.ao
+name: Deploy Azure - Biblia.ao
 
-# Publica a API (Azure Container Apps) e o frontend (Azure Static Web Apps)
-# após os recursos terem sido provisionados via infra/azure (Bicep).
+# Publica a API (imagem no GitHub Container Registry + Azure Container Apps)
+# e o frontend (Azure Static Web Apps, plano Free). Subscrição: Religioso.
+# Base de dados: Neon. Ver infra/azure/README.md.
 #
-# Pré-requisitos (configurar uma vez):
-#   1. Provisionar a infraestrutura: ver infra/azure/README.md
-#   2. Criar uma federated credential (OIDC) para este repositório em
-#      Azure AD (App Registration) — evita guardar segredos de longa duração.
-#      https://learn.microsoft.com/azure/developer/github/connect-from-azure
-#   3. Definir os secrets do repositório GitHub:
-#      AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID,
-#      AZURE_RESOURCE_GROUP, AZURE_CONTAINER_REGISTRY, AZURE_CONTAINER_APP_NAME,
-#      AZURE_STATIC_WEB_APPS_API_TOKEN
+# Secrets do repositório (Settings > Secrets and variables > Actions):
+#   AZURE_CLIENT_ID, AZURE_TENANT_ID   - App Registration com credencial OIDC
+#   AZURE_SUBSCRIPTION_ID              - subscrição Religioso
+#   AZURE_RESOURCE_GROUP               - rg-bibliaao
+#   AZURE_CONTAINER_APP_NAME           - biblia-production-api
+#   AZURE_STATIC_WEB_APPS_API_TOKEN    - token de deployment da Static Web App
+#   DATABASE_URL                       - Neon, connection string COM pooling
+#   DIRECT_URL                         - Neon, connection string directa
+#   API_URL                            - URL da API com /api/v1 (usado pelo Next.js no servidor)
+# Variáveis do repositório (separador "Variables"):
+#   API_PUBLIC_URL                     - URL da API com /api/v1 (usado pelo browser)
+#
+# Execução manual (Actions > Deploy Azure > Run workflow), com "alvo":
+#   tudo       - imagem da API + actualizar a Container App + migrações + site
+#   imagem-api - só constrói e publica a imagem no GHCR (não precisa de Azure)
+#   web        - só publica o site
 
 on:
   push:
@@ -21,14 +29,52 @@ on:
       - 'apps/web/**'
       - 'infra/azure/**'
   workflow_dispatch:
+    inputs:
+      alvo:
+        description: 'O que publicar'
+        type: choice
+        options: [tudo, imagem-api, web]
+        default: tudo
 
 permissions:
   id-token: write
   contents: read
+  packages: write
 
 jobs:
+  build-api:
+    name: Imagem da API -> GHCR
+    if: github.event_name == 'push' || inputs.alvo != 'web'
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Nome da imagem (o GHCR exige minúsculas)
+        id: meta
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/biblia-ao-api" >> "$GITHUB_OUTPUT"
+
+      - name: Login no GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build e publicar imagem
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/api
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}:${{ github.sha }}
+            ${{ steps.meta.outputs.image }}:latest
+
   deploy-api:
-    name: Deploy API → Azure Container Apps
+    name: Deploy API -> Azure Container Apps
+    needs: build-api
+    if: github.event_name == 'push' || inputs.alvo == 'tudo'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -40,31 +86,25 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Build e publicar imagem no Azure Container Registry
-        run: |
-          az acr build \
-            --registry ${{ secrets.AZURE_CONTAINER_REGISTRY }} \
-            --image biblia-ao-api:${{ github.sha }} \
-            --image biblia-ao-api:latest \
-            apps/api
-
-      - name: Atualizar Container App com a nova imagem
+      - name: Actualizar Container App com a nova imagem
         run: |
           az containerapp update \
             --name ${{ secrets.AZURE_CONTAINER_APP_NAME }} \
             --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-            --image ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/biblia-ao-api:${{ github.sha }}
+            --image ${{ needs.build-api.outputs.image }}:${{ github.sha }}
 
-      - name: Aplicar migrações Prisma em produção
+      - name: Aplicar migrações Prisma (Neon)
         working-directory: apps/api
         run: |
           npm install
           npx prisma migrate deploy
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
 
   deploy-web:
-    name: Deploy Web → Azure Static Web Apps
+    name: Deploy Web -> Azure Static Web Apps
+    if: github.event_name == 'push' || inputs.alvo != 'imagem-api'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -81,3 +121,4 @@ jobs:
           output_location: '.next'
         env:
           API_URL: ${{ secrets.API_URL }}
+          NEXT_PUBLIC_API_URL: ${{ vars.API_PUBLIC_URL }}

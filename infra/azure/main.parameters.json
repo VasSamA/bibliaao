@@ -2,11 +2,10 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "resourceGroupName": { "value": "rg-biblia-ao" },
-    "primaryLocation": { "value": "southafricanorth" },
-    "computeLocation": { "value": "westeurope" },
-    "aiLocation": { "value": "westeurope" },
-    "webLocation": { "value": "westeurope" },
-    "environmentName": { "value": "production" }
+    "resourceGroupName": { "value": "rg-bibliaao" },
+    "location": { "value": "westeurope" },
+    "environmentName": { "value": "production" },
+    "minReplicas": { "value": 0 },
+    "maxReplicas": { "value": 1 }
   }
 }
