@@ -20,10 +20,11 @@ async function getVersaoPadrao(apiUrl: string): Promise<string> {
   return versoes.find((v) => v.isDefault)?.code ?? versoes[0]?.code ?? VERSAO_FALLBACK;
 }
 
-async function getLivros(): Promise<{ versao: string; livros: Livro[] }> {
+async function getLivros(versaoPedida?: string): Promise<{ versao: string; livros: Livro[] }> {
   const apiUrl = process.env.API_URL ?? 'http://localhost:4000/api/v1';
   try {
-    const versao = await getVersaoPadrao(apiUrl);
+    // ?versao=JFA (vindo do título do capítulo) mantém a versão que o leitor estava a usar.
+    const versao = versaoPedida && /^[A-Za-z0-9-]{1,20}$/.test(versaoPedida) ? versaoPedida : await getVersaoPadrao(apiUrl);
     const res = await fetch(`${apiUrl}/biblia/${versao}/livros`, { cache: 'no-store' });
     if (res.ok) {
       const data = await res.json();
@@ -40,8 +41,8 @@ async function getLivros(): Promise<{ versao: string; livros: Livro[] }> {
   return { versao: VERSAO_FALLBACK, livros: LIVROS_FALLBACK };
 }
 
-export default async function BibliaPage() {
-  const { versao, livros } = await getLivros();
+export default async function BibliaPage({ searchParams }: { searchParams?: { versao?: string } }) {
+  const { versao, livros } = await getLivros(searchParams?.versao);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-12">

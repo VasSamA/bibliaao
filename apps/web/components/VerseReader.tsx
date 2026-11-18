@@ -1,14 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import Link from 'next/link';
-import { Bookmark, ChevronLeft, ChevronRight, Copy, Link2, Share2, StickyNote } from 'lucide-react';
+import { Bookmark, ChevronDown, ChevronLeft, ChevronRight, Copy, Link2, Share2, StickyNote } from 'lucide-react';
 import clsx from 'clsx';
 import { api } from '../lib/api';
+import { ReferenceModal, type CrossRef } from './ReferenceModal';
 
 export type Verse = { id: string; number: number; text: string; reference: string };
-
-type CrossRef = { referencia: string; livro: string; capitulo: number; versiculo: number; votos: number };
 
 const COLOR_TAGS = [
   { key: 'amarelo', className: 'bg-yellow-200/70 dark:bg-yellow-500/30' },
@@ -38,6 +37,8 @@ export function VerseReader({
   const [activeVerse, setActiveVerse] = useState<string | null>(null);
   const [crossRefs, setCrossRefs] = useState<Record<string, CrossRef[] | 'loading' | 'erro'>>({});
   const [openCrossRefs, setOpenCrossRefs] = useState<string | null>(null);
+  const [referenciaAberta, setReferenciaAberta] = useState<CrossRef | null>(null);
+  const fecharReferencia = useCallback(() => setReferenciaAberta(null), []);
 
   async function toggleCrossRefs(v: Verse) {
     if (openCrossRefs === v.id) {
@@ -81,7 +82,14 @@ export function VerseReader({
     <div className={clsx('mx-auto max-w-3xl px-4 py-10', focusMode && 'max-w-2xl')}>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3 text-sm">
         <h1 className="font-serif text-2xl font-semibold">
-          {bookName} {chapterNumber}
+          <Link
+            href={`/biblia?versao=${encodeURIComponent(versao)}`}
+            title="Ver todos os livros"
+            className="group inline-flex items-center gap-1 rounded hover:text-gold-600 dark:hover:text-gold-400"
+          >
+            {bookName} {chapterNumber}
+            <ChevronDown size={18} className="mt-1 opacity-50 transition group-hover:opacity-100" aria-hidden />
+          </Link>
         </h1>
         <div className="flex items-center gap-3">
           <button onClick={() => setFontSize((s) => Math.max(14, s - 2))} className="rounded border px-2 py-1">A-</button>
@@ -166,19 +174,24 @@ export function VerseReader({
                 )}
                 {Array.isArray(crossRefs[v.id]) &&
                   (crossRefs[v.id] as CrossRef[]).map((ref, i) => (
-                    <Link
+                    <button
                       key={i}
-                      href={`/biblia/${versao}/${ref.livro}/${ref.capitulo}`}
+                      type="button"
+                      onClick={() => setReferenciaAberta(ref)}
                       className="rounded-full border border-sacred-200 bg-white px-3 py-1 text-sacred-700 hover:border-gold-500 hover:text-gold-600 dark:border-sacred-600 dark:bg-sacred-800 dark:text-parchment-100"
                     >
                       {ref.referencia}
-                    </Link>
+                    </button>
                   ))}
               </div>
             )}
           </div>
         ))}
       </div>
+
+      {referenciaAberta && (
+        <ReferenceModal referencia={referenciaAberta} versao={versao} fontSize={fontSize} onClose={fecharReferencia} />
+      )}
 
       <div className="not-verse-text mt-10 flex items-center justify-between border-t border-parchment-200 pt-4 text-sm dark:border-sacred-700">
         {chapterNumber > 1 ? (
