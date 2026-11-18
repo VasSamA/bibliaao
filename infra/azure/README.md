@@ -111,6 +111,10 @@ New-AzRoleAssignment -ApplicationId $cid -RoleDefinitionName 'Contributor' `
 
 ### 5. Publicar o site e validar
 
+A definição `API_URL` da Static Web App (lida pelo Next.js em runtime) já é criada pelo
+Bicep. Se faltar, a página `/biblia` mostra a lista de exemplo (ARA, 4 livros):
+`az staticwebapp appsettings set -n biblia-production-web -g rg-bibliaao --setting-names "API_URL=<apiUrl>/api/v1"`.
+
 Run workflow no branch `migracao-neon-religioso`, alvo **web**. Abrir `<webUrl>` e
 confirmar leitura da Bíblia, pesquisa, login e "Pergunte à Bíblia".
 

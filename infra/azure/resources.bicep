@@ -156,6 +156,16 @@ resource staticWebApp 'Microsoft.Web/staticSites@2023-01-01' = {
   }
 }
 
+// Definições da aplicação: o Next.js lê API_URL em runtime, do lado do servidor
+// (ex.: página /biblia). Sem isto, as páginas caem no conteúdo de exemplo.
+resource staticWebAppSettings 'Microsoft.Web/staticSites/config@2023-01-01' = {
+  parent: staticWebApp
+  name: 'appsettings'
+  properties: {
+    API_URL: 'https://${apiContainerApp.properties.configuration.ingress.fqdn}/api/v1'
+  }
+}
+
 // ---------- Outputs ----------
 
 output apiUrl string = 'https://${apiContainerApp.properties.configuration.ingress.fqdn}'
